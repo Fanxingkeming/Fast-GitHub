@@ -4,10 +4,10 @@
 
 国内访问 GitHub 慢、Release 下不动、仓库克隆不动？这个浏览器扩展把下载链接换成加速通道。
 
-![Version](https://img.shields.io/badge/version-v2.4.0-blue)
+![Version](https://img.shields.io/badge/version-v2.8.0-blue)
 ![Manifest](https://img.shields.io/badge/manifest-v3-orange)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![Tests](https://img.shields.io/badge/tests-50%2B%20logic%20%2B%2035%20e2e-brightgreen)
+![Tests](https://img.shields.io/badge/tests-50%2B%20logic%20%2B%2036%20e2e-brightgreen)
 
 ---
 
@@ -26,7 +26,7 @@
 
 | 目录 | 内容 | 状态 |
 | --- | --- | --- |
-| [`gh-accelerator/`](./gh-accelerator) | **当前版本 v2.4.0**，现代化 MV3 扩展 | ✅ 推荐使用 |
+| [`gh-accelerator/`](./gh-accelerator) | **当前版本 v2.8.0**，现代化 MV3 扩展 | ✅ 推荐使用 |
 | [`legacy/`](./legacy) | 过往版本存档（gh-accelerator v2.2.0） | 📦 仅存档 |
 | [`fast_github/`](./fast_github) | 旧版 v1.5.10 源码（Vite + React + Tailwind） | 📦 仅存档，不再维护 |
 | [`tools/`](./tools) | 节点库生成与校验脚本 | ✅ 随新版维护 |
@@ -46,22 +46,25 @@
 
 ---
 
-## 🚀 当前版本：gh-accelerator v2.4.0
+## 🚀 当前版本：gh-accelerator v2.8.0
 
 在旧版 v1.5.10 基础上完全重写的 MV3 扩展。上游项目为
 [fhefh2015/Fast-GitHub](https://github.com/fhefh2015/Fast-GitHub)（Apache-2.0），
 新版沿用同一许可证。
 
-> **v2.4.0 更新要点**：节点仓库由 3 个扩至 **8 个**，并按「**可加速仓库 / 仅下载专用**」分类；
-> 移除早期「页面增强」模块（Web IDE 入口与 Issue 翻译），聚焦核心加速能力；
-> 设置页与弹窗改为**星露谷素风** UI。
+> **v2.8.0 更新要点**：**插件配色实时跟随浏览器 / 系统主题色**——从 CSS 系统强调色读取种子色，
+> 经 Material You tonal 映射生成整套浅色 / 深色变量；切换系统深浅主题或改强调色会自动重算，无需重启扩展。
+> Firefox 下直接读取浏览器主题 frame 颜色，GitHub 注入面板还会跟随页面主题色；「外观」里可关闭跟随并指定自定义主色。
+> 同时移除设置页与弹窗左上角的 Logo，标题改为贴左对齐。v2.7.0 的一键体检、智能模式与精简界面全部保留。
 
 ### 功能
 
 **节点体系**
 - 内置 **81 个**社区公益加速节点，开箱即用
-- 精选 **8 个活跃节点仓库**，每 **24 小时**自动同步，每个仓库 4 个镜像依次降级
+- 精选 **8 个节点仓库**，默认启用 **3 个互补来源**（主清单 / 自带分类 / 下载专用），其余在「更多来源」按需开启；每 **24 小时**自动同步，每个仓库 4 个镜像依次降级
 - 节点按**能力分类**：**可加速仓库（full）**支持 clone / git smart HTTP 也能下载；**仅下载专用（download）**只能下载文件（raw / release / archive），不能加速仓库 clone
+- **一键体检**：同步 → 去重 → 测延迟与带宽 → 自动标注能力 → 择优，一次完成并给出「可加速 / 仅下载 / 未判定」摘要；节点列表用状态圆点呈现分类，可在「⋯」里手动覆盖
+- **智能模式**：打开仓库、clone 与一键代理只使用可加速节点；仅下载节点留给文件下载
 - 设置页可追加**自定义节点源**（与仓库合并同步，清空即移除）
 - **重复节点查重合并**：统一大小写、协议、`www.`、端口、路径后归并，显示来源徽章
 
@@ -69,6 +72,8 @@
 - 延迟探测（HEAD 计时）+ 真实带宽测算（下载样本文件换算 Mbps）
 - 节点能力探测：是否支持 Range 断点续传、是否支持 git smart HTTP
 - 真实使用成功率计入健康度评分，失败率高的节点自动降权
+- 后台、设置页、弹窗共用同一套评分，列表顺序与实际选中的最优节点一致
+- **实时主题色**：深浅随 `prefers-color-scheme`，主色随系统强调色；生成 48 个 M3 变量，按钮 / 容器 / 正文对比度自动满足 WCAG AA
 
 **智能路由（按域名分流）**
 - `raw` 文件 → **jsDelivr CDN**（`cdn.jsdelivr.net`，商业 CDN，不经第三方节点）
@@ -83,9 +88,12 @@
   支持 `*` 通配、实时自检、增删改与恢复默认
 - 私有仓库页面自动上报，加入运行时永不代理名单
 
-**界面**
-- 星露谷素风（Stardew Valley cozy / rustic）：暖色羊皮纸与木色调，粗边框 + 无模糊硬阴影，质朴圆角
-- 森林绿侧边栏 + 蜜黄 / 河蓝点缀，深浅主题均适配；注入面板自带不透明羊皮纸底，不依赖 GitHub 主题
+**界面（Material You / Material Design 3）**
+- 紫罗兰种子色的 **tonal 动态配色**：primary / secondary / tertiary container 分层表面
+- **大圆角**（卡片 20px、按钮全胶囊）、无粗边框，靠 tonal 明暗区分层级
+- **柔和多层 elevation** 替代硬投影，交互用 **state layer**（8% / 10% / 12%）反馈
+- M3 组件：filled / tonal 按钮、52×32 开关、assist chip、inverse-surface snackbar、pill 形导航指示器
+- 完整深浅双主题；注入元素用独立 `--fgm-*` 变量，跟随 GitHub 明暗且不污染页面
 - GitHub 页面注入下拉面板，每条通道带延迟标签与一键复制
 
 **架构**
@@ -96,8 +104,8 @@
 
 **方式一：Release 压缩包（推荐）**
 
-1. 前往 [Releases](https://github.com/Master-five-elements/Fast-GitHub/releases/latest) 下载 `gh-accelerator-v2.4.0.zip`
-2. 解压得到 `gh-accelerator-v2.4.0/` 文件夹
+1. 前往 [Releases](https://github.com/Fanxingkeming/Fast-GitHub/releases/latest) 下载 `gh-accelerator-v2.8.0.zip`
+2. 解压得到 `gh-accelerator-v2.8.0/` 文件夹
 3. 浏览器打开 `chrome://extensions`（Edge 为 `edge://extensions`）
 4. 开启右上角「**开发者模式**」
 5. 点「**加载已解压的扩展**」，选择刚才解压的文件夹
@@ -105,7 +113,7 @@
 **方式二：仓库源码**
 
 ```bash
-git clone https://github.com/Master-five-elements/Fast-GitHub.git
+git clone https://github.com/Fanxingkeming/Fast-GitHub.git
 ```
 
 然后在 `chrome://extensions` 里直接加载 `gh-accelerator/` 目录（无需任何构建步骤）。
@@ -129,6 +137,7 @@ git clone https://github.com/Master-five-elements/Fast-GitHub.git
 新版经过三层验证，全部通过：
 
 ```bash
+node tools/test_auto_kind.mjs                                     # 42 项测速自动标注回归（分类纯函数 / 优先级 / 不可达保护）
 node tools/smoke_test.mjs                                          # 50+ 项逻辑测试（mock chrome + fetch）
 NODE_PATH=<workspace>/node_modules node tools/e2e_extension.js    # 35 项真实浏览器端到端（puppeteer-core 驱动本机 Edge）
 ```
