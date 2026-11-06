@@ -11,11 +11,8 @@
 
     <header class="ph">
       <div class="ph-brand">
-        <div class="brand-logo">GH</div>
-        <div>
-          <div class="ph-title">GitHub 加速</div>
-          <div class="ph-sub">智能节点 · 自动择优</div>
-        </div>
+        <div class="ph-title">GitHub 加速</div>
+        <div class="ph-sub">智能节点 · 自动择优</div>
       </div>
       <label class="fg-switch" title="启用 / 停用"><span class="fg-sr-only">启用插件功能</span>
         <input type="checkbox" id="enabled" />
@@ -33,30 +30,25 @@
         <span class="fg-badge" id="nodeLatency">未测速</span>
         <span class="fg-badge" id="nodeSpeed">—</span>
       </div>
-      <div class="p-actions">
-        <button class="fg-btn fg-btn-sm" id="btnTest" type="button">测速</button>
+      <div class="p-actions p-actions-2">
+        <button class="fg-btn fg-btn-sm fg-btn-primary" id="btnProxy" type="button">
+          一键代理
+        </button>
         <button class="fg-btn fg-btn-sm" id="btnNext" type="button">换一个</button>
-        <button class="fg-btn fg-btn-sm" id="btnSync" type="button">同步节点</button>
       </div>
     </section>
 
     <section class="p-block">
       <div class="p-block-title">当前页面</div>
       <div class="p-url" id="currentUrl">—</div>
-      <div class="p-actions p-actions-2">
-        <button class="fg-btn fg-btn-sm fg-btn-primary" id="btnProxy" type="button">
-          一键代理
-        </button>
-        <button class="fg-btn fg-btn-sm" id="btnCopy" type="button">复制链接</button>
-      </div>
     </section>
 
     <footer class="pf">
-      <span id="syncInfo">最近同步：—</span>
+      <span id="syncInfo">最近体检：—</span>
       <span class="pf-links">
         <a
           class="pf-link"
-          href="https://github.com/Master-five-elements/Fast-GitHub/issues"
+          href="https://github.com/Fanxingkeming/Fast-GitHub/issues"
           target="_blank"
           rel="noopener"
           title="反馈问题或建议"
