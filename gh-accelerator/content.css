@@ -1,7 +1,52 @@
 /* ==================================================================
- * 注入到 GitHub 页面的样式 · 星露谷素风
- * 自带不透明羊皮纸面板，不依赖 GitHub 明暗主题
+ * 注入到 GitHub 页面的样式 · Material You (Material Design 3)
+ * 自包含：不依赖 lib/ui.css，变量用 --fgm- 前缀避免污染 GitHub 主题。
+ * Tonal 面板 + pill 按钮 + 柔和 elevation + state layer。
  * ================================================================== */
+
+:root {
+  --fgm-primary: #6750a4;
+  --fgm-on-primary: #ffffff;
+  --fgm-primary-container: #eaddff;
+  --fgm-on-primary-container: #21005d;
+  --fgm-secondary-container: #e8def8;
+  --fgm-on-secondary-container: #1d192b;
+  --fgm-tertiary-container: #ffd8e4;
+  --fgm-surface: #ffffff;
+  --fgm-surface-2: #f3edf7;
+  --fgm-surface-3: #ece6f0;
+  --fgm-text: #1d1b20;
+  --fgm-text-2: #49454f;
+  --fgm-muted: #79747e;
+  --fgm-outline: #79747e;
+  --fgm-outline-variant: #e7e0ec;
+  --fgm-elev-1: 0 1px 2px rgba(29, 27, 32, 0.16), 0 1px 3px 1px rgba(29, 27, 32, 0.08);
+  --fgm-elev-2: 0 1px 2px rgba(29, 27, 32, 0.16), 0 2px 6px 2px rgba(29, 27, 32, 0.1);
+  --fgm-elev-3: 0 4px 8px 3px rgba(29, 27, 32, 0.12), 0 1px 3px rgba(29, 27, 32, 0.16);
+  --fgm-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+html[data-color-mode="dark"],
+html[data-dark-theme="dark"] {
+  --fgm-primary: #d0bcff;
+  --fgm-on-primary: #381e72;
+  --fgm-primary-container: #4f378b;
+  --fgm-on-primary-container: #eaddff;
+  --fgm-secondary-container: #4a4458;
+  --fgm-on-secondary-container: #e8def8;
+  --fgm-tertiary-container: #633b48;
+  --fgm-surface: #1d1b20;
+  --fgm-surface-2: #2b2930;
+  --fgm-surface-3: #36343b;
+  --fgm-text: #e6e0e9;
+  --fgm-text-2: #cac4d0;
+  --fgm-muted: #938f99;
+  --fgm-outline: #938f99;
+  --fgm-outline-variant: #36343b;
+  --fgm-elev-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px 1px rgba(0, 0, 0, 0.35);
+  --fgm-elev-2: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px 2px rgba(0, 0, 0, 0.4);
+  --fgm-elev-3: 0 4px 8px 3px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
 
 .fg-speed {
   position: relative;
@@ -9,45 +54,60 @@
   vertical-align: middle;
   margin-left: 8px;
   font-family:
-    "Segoe UI", "PingFang SC", "Microsoft YaHei", Verdana, Helvetica, Arial, sans-serif;
+    "Roboto Flex", Roboto, "Segoe UI Variable", "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", system-ui, sans-serif;
 }
 
-/* ------------------------------ 触发按钮 ------------------------------ */
+/* ------------------------------ 触发按钮 ------------------------------
+ * M3 filled pill button
+ * -------------------------------------------------------------------- */
 
 .fg-trigger {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 15px;
-  border: 2px solid #4d7433;
-  border-radius: 8px;
-  background: #6a994e;
-  color: #fff;
+  gap: 7px;
+  height: 34px;
+  padding: 0 18px;
+  overflow: hidden;
+  border: none;
+  border-radius: 999px;
+  background: var(--fgm-primary);
+  color: var(--fgm-on-primary);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 3px 3px 0 rgba(58, 38, 18, 0.28);
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.16s ease;
+  box-shadow: var(--fgm-elev-1);
+  transition: box-shadow 0.2s var(--fgm-ease);
+}
+
+.fg-trigger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--fgm-on-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--fgm-ease);
 }
 
 .fg-trigger:hover {
-  background: #5b8a40;
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 rgba(58, 38, 18, 0.3);
+  box-shadow: var(--fgm-elev-2);
+  color: var(--fgm-on-primary);
 }
 
-.fg-trigger:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 rgba(58, 38, 18, 0.3);
+.fg-trigger:hover::before {
+  opacity: 0.08;
+}
+
+.fg-trigger:active::before {
+  opacity: 0.12;
 }
 
 .fg-bolt {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .fg-caret {
@@ -55,7 +115,9 @@
   opacity: 0.9;
 }
 
-/* ------------------------------ 下拉面板 ------------------------------ */
+/* ------------------------------ 下拉面板 ------------------------------
+ * M3 elevated surface：大圆角 + 柔和 elevation-3
+ * -------------------------------------------------------------------- */
 
 .fg-panel {
   position: absolute;
@@ -63,23 +125,30 @@
   right: 0;
   z-index: 999;
   display: none;
-  width: 366px;
-  padding: 14px;
-  border: 2px solid #7a4f2a;
-  border-radius: 10px;
-  background: #fbf3dc;
-  box-shadow: 4px 4px 0 rgba(58, 38, 18, 0.28);
-  animation: fg-panel-in 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  width: 372px;
+  padding: 18px;
+  border: 1px solid var(--fgm-outline-variant);
+  border-radius: 20px;
+  background: var(--fgm-surface);
+  color: var(--fgm-text);
+  box-shadow: var(--fgm-elev-3);
+  animation: fg-panel-in 0.3s var(--fgm-ease);
 }
 
 .fg-panel.is-open {
   display: block;
 }
 
+/* 触发按钮贴近视口左缘时向右展开，避免面板被裁切 */
+.fg-panel.is-align-left {
+  right: auto;
+  left: 0;
+}
+
 @keyframes fg-panel-in {
   from {
     opacity: 0;
-    transform: translateY(-6px) scale(0.985);
+    transform: translateY(-8px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -91,137 +160,136 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 11px;
-  color: #43321c;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.fg-panel-sub {
-  color: #9c8763;
-  font-size: 11px;
+  margin-bottom: 14px;
+  color: var(--fgm-text);
+  font-size: 14px;
   font-weight: 600;
 }
 
+.fg-panel-sub {
+  color: var(--fgm-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .fg-chan {
-  padding: 10px;
-  margin-bottom: 8px;
-  border: 2px solid #d8c293;
-  border-radius: 8px;
-  background: #f2e6c5;
-  transition: border-color 0.16s ease;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 14px;
+  background: var(--fgm-surface-2);
+  transition: background 0.2s var(--fgm-ease);
 }
 
 .fg-chan:hover {
-  border-color: #6a994e;
+  background: var(--fgm-surface-3);
 }
 
 .fg-chan-head {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 7px;
+  gap: 8px;
+  margin-bottom: 9px;
 }
 
 .fg-chan-name {
   overflow: hidden;
-  color: #43321c;
+  color: var(--fgm-text);
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fg-chan-tag {
-  padding: 1px 7px;
-  border: 1.5px solid #4d7433;
-  border-radius: 6px;
-  background: #6a994e;
-  color: #fff;
+  padding: 3px 9px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fgm-primary-container);
+  color: var(--fgm-on-primary-container);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .fg-chan-lat {
   margin-left: auto;
-  color: #3f6b2a;
+  color: var(--fgm-primary);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .fg-chan-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .fg-chan-input {
   min-width: 0;
   flex: 1;
-  height: 29px;
-  padding: 0 9px;
-  border: 2px solid #b78a55;
-  border-radius: 6px;
-  background: #fbf3dc;
-  color: #43321c;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--fgm-outline);
+  border-radius: 10px;
+  background: var(--fgm-surface);
+  color: var(--fgm-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11.5px;
   outline: none;
   transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease;
+    border-color 0.2s var(--fgm-ease),
+    box-shadow 0.2s var(--fgm-ease);
 }
 
 .fg-chan-input:focus {
-  border-color: #6a994e;
-  box-shadow: 0 0 0 3px rgba(106, 153, 78, 0.25);
+  border-color: var(--fgm-primary);
+  box-shadow: 0 0 0 1px var(--fgm-primary);
 }
 
 .fg-mini {
-  height: 29px;
-  padding: 0 11px;
-  border: 2px solid #7a4f2a;
-  border-radius: 6px;
-  background: #f2e6c5;
-  color: #43321c;
+  position: relative;
+  height: 34px;
+  padding: 0 16px;
+  overflow: hidden;
+  border: none;
+  border-radius: 999px;
+  background: var(--fgm-secondary-container);
+  color: var(--fgm-on-secondary-container);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 2px 2px 0 rgba(58, 38, 18, 0.22);
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.16s ease;
+  transition: box-shadow 0.2s var(--fgm-ease);
 }
 
-.fg-mini:hover {
-  background: #e7d6ad;
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 rgba(58, 38, 18, 0.24);
+.fg-mini::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--fgm-ease);
 }
 
-.fg-mini:active {
-  transform: translate(1px, 1px);
-  box-shadow: 0 0 0 rgba(58, 38, 18, 0.24);
+.fg-mini:hover::before {
+  opacity: 0.08;
+}
+
+.fg-mini:active::before {
+  opacity: 0.12;
 }
 
 .fg-mini-primary {
-  border-color: #4d7433;
-  background: #6a994e;
-  color: #fff;
-}
-
-.fg-mini-primary:hover {
-  background: #5b8a40;
-  color: #fff;
+  background: var(--fgm-primary);
+  color: var(--fgm-on-primary);
 }
 
 .fg-panel-actions {
   display: flex;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .fg-panel-actions .fg-mini {
@@ -230,24 +298,24 @@
 
 .fg-panel-feedback {
   display: block;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 2px dashed #d8c293;
-  color: #6e5638;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--fgm-outline-variant);
+  color: var(--fgm-primary);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
   text-decoration: none;
-  transition: color 0.16s ease;
+  transition: opacity 0.2s var(--fgm-ease);
 }
 
 .fg-panel-feedback:hover {
-  color: #4d7433;
+  opacity: 0.75;
 }
 
 .fg-panel-empty {
-  padding: 14px 4px;
-  color: #9c8763;
+  padding: 16px 4px;
+  color: var(--fgm-muted);
   font-size: 12px;
   text-align: center;
 }
@@ -258,26 +326,26 @@
   display: inline-flex;
   align-items: center;
   margin-left: 8px;
-  padding: 2px 9px;
-  border: 2px solid #4d7433;
-  border-radius: 6px;
-  background: #6a994e;
-  color: #fff;
+  padding: 3px 13px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fgm-primary-container);
+  color: var(--fgm-on-primary-container);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: inherit;
   line-height: 18px;
   text-decoration: none;
   cursor: pointer;
   transition:
-    background 0.16s ease,
-    transform 0.12s ease;
+    box-shadow 0.2s var(--fgm-ease),
+    filter 0.2s var(--fgm-ease);
 }
 
 .fg-dl:hover {
-  background: #5b8a40;
-  transform: translateY(-1px);
-  color: #fff;
+  color: var(--fgm-on-primary-container);
+  box-shadow: var(--fgm-elev-1);
+  filter: brightness(0.96);
 }
 
 /* ----------------------------- Release 加速 ----------------------------- */
@@ -286,102 +354,53 @@
   display: inline-flex;
   align-items: center;
   margin-left: 10px;
-  padding: 3px 11px;
-  border: 2px solid #4d7433;
-  border-radius: 6px;
-  background: #6a994e;
+  padding: 5px 15px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fgm-primary);
   /* biome-ignore lint/complexity/noImportantStyles: 需覆盖 GitHub 原生链接颜色 */
-  color: #fff !important;
+  color: var(--fgm-on-primary) !important;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
-  box-shadow: 2px 2px 0 rgba(58, 38, 18, 0.22);
+  box-shadow: var(--fgm-elev-1);
   transition:
-    filter 0.16s ease,
-    transform 0.12s ease;
+    filter 0.2s var(--fgm-ease),
+    box-shadow 0.2s var(--fgm-ease);
 }
 
 .fg-accel:hover {
-  transform: translateY(-1px);
   /* biome-ignore lint/complexity/noImportantStyles: 需覆盖 GitHub 原生链接颜色 */
-  color: #fff !important;
-  filter: brightness(1.06);
+  color: var(--fgm-on-primary) !important;
+  box-shadow: var(--fgm-elev-2);
+  filter: brightness(1.08);
 }
 
-/* ------------------------------- 轻提示 ------------------------------- */
+/* ------------------------------- Snackbar ------------------------------- */
 
 #fg-flash {
   position: fixed;
   left: 50%;
   bottom: 32px;
   z-index: 100000;
-  padding: 10px 20px;
-  border: 2px solid #7a4f2a;
-  border-radius: 10px;
-  background: rgba(251, 243, 220, 0.96);
-  color: #43321c;
+  padding: 13px 22px;
+  border: none;
+  border-radius: 12px;
+  background: #322f35;
+  color: #f5eff7;
   font-size: 13px;
-  font-weight: 700;
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", Verdana, sans-serif;
-  box-shadow: 4px 4px 0 rgba(58, 38, 18, 0.3);
+  font-weight: 500;
+  font-family:
+    "Roboto Flex", Roboto, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  box-shadow: var(--fgm-elev-3);
   opacity: 0;
   transform: translate(-50%, 12px);
   pointer-events: none;
-  transition: all 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: all 0.3s var(--fgm-ease);
 }
 
 #fg-flash.is-show {
   opacity: 1;
   transform: translate(-50%, 0);
-}
-
-/* --------------------------- GitHub 深色适配 --------------------------- */
-
-html[data-color-mode="dark"] .fg-panel,
-html[data-dark-theme="dark"] .fg-panel {
-  background: #3a342b;
-  border-color: #8a6a45;
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
-}
-
-html[data-color-mode="dark"] .fg-panel-title,
-html[data-dark-theme="dark"] .fg-panel-title {
-  color: #f1e7d2;
-}
-
-html[data-color-mode="dark"] .fg-chan,
-html[data-dark-theme="dark"] .fg-chan {
-  background: #443d31;
-  border-color: #5a4d3a;
-}
-
-html[data-color-mode="dark"] .fg-chan-name,
-html[data-dark-theme="dark"] .fg-chan-name {
-  color: #f1e7d2;
-}
-
-html[data-color-mode="dark"] .fg-chan-input,
-html[data-dark-theme="dark"] .fg-chan-input {
-  background: #3a342b;
-  border-color: #8a6a45;
-  color: #f1e7d2;
-}
-
-html[data-color-mode="dark"] .fg-mini,
-html[data-dark-theme="dark"] .fg-mini {
-  background: #443d31;
-  border-color: #8a6a45;
-  color: #f1e7d2;
-}
-
-html[data-color-mode="dark"] .fg-mini:hover,
-html[data-dark-theme="dark"] .fg-mini:hover {
-  background: #504736;
-}
-
-html[data-color-mode="dark"] .fg-panel-feedback,
-html[data-dark-theme="dark"] .fg-panel-feedback {
-  border-top-color: #5a4d3a;
-  color: #c8b594;
 }
