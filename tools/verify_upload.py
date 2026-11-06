@@ -21,9 +21,10 @@ import urllib.request
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE_DIR = os.path.join(BASE, "upload")
-OWNER = "Master-five-elements"
+OWNER = "Fanxingkeming"
 REPO = "Fast-GitHub"
 BRANCH = "main"
+REPO_API = "https://api.github.com/repositories/1429773758"
 SKIP_DIRS = {"__pycache__", ".git"}
 
 
@@ -50,11 +51,7 @@ def api_get(url, token):
 
 def remote_index(token):
     """递归拉取远端全部文件 -> {path: sha}（git trees API，一次调用）"""
-    url = "https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1" % (
-        OWNER,
-        REPO,
-        BRANCH,
-    )
+    url = "%s/git/trees/%s?recursive=1" % (REPO_API, BRANCH)
     status, data = api_get(url, token)
     if status != 200:
         print("  读取仓库树失败: HTTP %s %s" % (status, data.get("message", "")))
