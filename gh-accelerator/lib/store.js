@@ -4,7 +4,8 @@
  */
 
 import { DEFAULT_NODES, NODES_SOURCE } from "./nodes.js";
-import { DEFAULT_REPO_IDS, NODE_REPOS } from "./repos.js";
+import { rankNodes } from "./rank.js";
+import { DEFAULT_ENABLED_REPO_IDS, NODE_REPOS } from "./repos.js";
 
 /**
  * @typedef {Object} NodeEntry
@@ -44,7 +45,11 @@ import { DEFAULT_REPO_IDS, NODE_REPOS } from "./repos.js";
  * @property {NodeEntry[]} remoteNodes
  * @property {string[]} disabledNodes
  * @property {Record<string, NodeStat>} stats
+ * @property {Record<string, { range?: boolean; git?: boolean; reachable?: boolean; kind?: "full" | "download" | null; ts?: number }>} capabilities 测速时自动探测的能力结果
+ * @property {Record<string, "full" | "download">} nodeKinds 用户手动标注的能力分类
  * @property {"system" | "light" | "dark"} theme
+ * @property {boolean} followBrowserColor 主色是否实时跟随浏览器 / 系统主题色
+ * @property {string} themeSeed 关闭跟随时使用的自定义主色
  */
 
 const KEY = "fg_settings_v2";
@@ -117,9 +122,9 @@ const DEFAULTS = {
     "https://raw.githubusercontent.com/hubporg/ghproxy-next/main/package-lock.json",
   customNodes: [],
   remoteNodes: [],
-  repoEnabled: DEFAULT_REPO_IDS.reduce(
-    (acc, id) => {
-      acc[id] = true;
+  repoEnabled: NODE_REPOS.reduce(
+    (acc, repo) => {
+      acc[repo.id] = DEFAULT_ENABLED_REPO_IDS.includes(repo.id);
       return acc;
     },
     /** @type {Record<string, boolean>} */ ({}),
@@ -134,7 +139,19 @@ const DEFAULTS = {
   usage: {},
   /** 节点能力分类：full = 可加速仓库（支持 clone）；download = 仅下载文件 */
   nodeKinds: {},
+  /**
+   * 以域名为键的合并状态视图（stat / caps / usage / 手动分类）。
+   * 四个旧键保留以兼容既有配置与读取方，所有新写入由 writeNodePatches 同时维护两者。
+   */
+  nodeState: {},
+  /** 智能模式：打开仓库 / 一键代理时只使用可加速仓库的节点 */
+  smartKind: true,
+  lastCheckup: 0,
+  lastCheckupMessage: "",
   theme: "system",
+  /** 实时跟随浏览器 / 系统强调色；关闭后使用 themeSeed */
+  followBrowserColor: true,
+  themeSeed: "#6750a4",
 };
 
 /** @template T @param {T} obj @returns {T} */
@@ -316,10 +333,10 @@ export function replaceRepoNodes(list, repoId, nodes) {
   return [...others, ...fresh];
 }
 
-/** 启用的节点仓库 */
+/** 启用的节点仓库（默认只启用互补的 3 个；旧配置里显式 true 的仍保持启用） */
 export function enabledRepos(settings) {
   const enabled = settings?.repoEnabled ?? {};
-  return NODE_REPOS.filter((repo) => enabled[repo.id] !== false);
+  return NODE_REPOS.filter((repo) => enabled[repo.id] === true);
 }
 
 /**
@@ -357,24 +374,7 @@ export function activeNodes(settings) {
  * @returns {NodeStat | null}
  */
 export function statOf(settings, value) {
-  return settings?.stats?.[value] ?? null;
-}
-
-/**
- * 分值越小越优；真实使用失败率高的节点会被降权
- * @param {NodeStat | null} stat
- * @param {UsageStat | null} [usage]
- */
-function scoreOf(stat, usage) {
-  if (usage?.total && usage.total >= 3 && usage.fail / usage.total > 0.5) {
-    return Number.MAX_SAFE_INTEGER - 3;
-  }
-  if (!stat) return Number.MAX_SAFE_INTEGER;
-  const speed = Number.parseFloat(String(stat.speed ?? ""));
-  if (!Number.isNaN(speed) && speed > 0) return 1000 - speed;
-  const latency = Number.parseFloat(String(stat.latency ?? ""));
-  if (!Number.isNaN(latency)) return 100000 + latency;
-  return Number.MAX_SAFE_INTEGER - 1;
+  return settings?.stats?.[value] ?? settings?.nodeState?.[nodeKey(value)]?.stat ?? null;
 }
 
 /**
@@ -392,8 +392,13 @@ function scoreOf(stat, usage) {
  * @param {Settings} settings
  * @param {string} value
  */
+/** 读取某节点的使用统计，兼容合并视图 */
+function usageOf(settings, value) {
+  return settings?.usage?.[value] ?? settings?.nodeState?.[nodeKey(value)]?.usage ?? null;
+}
+
 export function healthOf(settings, value) {
-  const usage = settings?.usage?.[value];
+  const usage = usageOf(settings, value);
   if (!usage?.total) {
     return { score: null, label: "暂无数据", failRate: 0, uses: 0, avgMs: 0 };
   }
@@ -404,38 +409,103 @@ export function healthOf(settings, value) {
 }
 
 /**
+ * 节点状态的唯一写入口：一次读取、一次写回，并使用串行队列避免并发覆盖。
+ * 四个旧键与 nodeState 在同一次事务里同步更新，调用方无需自行排队。
+ * @param {Record<string, { stat?: any; caps?: any; kind?: "full" | "download" | null; usageEvent?: { ok: boolean; ms: number } }>} entries
+ * @returns {Promise<Settings>}
+ */
+let writeQueue = Promise.resolve();
+export function writeNodePatches(entries) {
+  const run = async () => {
+    const settings = await get();
+    const stats = { ...(settings.stats ?? {}) };
+    const capabilities = { ...(settings.capabilities ?? {}) };
+    const usage = { ...(settings.usage ?? {}) };
+    const nodeKinds = { ...(settings.nodeKinds ?? {}) };
+    const nodeState = { ...(settings.nodeState ?? {}) };
+    const ts = Date.now();
+
+    for (const [raw, patch] of Object.entries(entries ?? {})) {
+      const key = nodeKey(raw);
+      if (!key) continue;
+      const state = { ...(nodeState[key] ?? {}), ts };
+
+      if (patch.stat) {
+        const stat = {
+          ...(stats[key] ?? {}),
+          ...patch.stat,
+          ts,
+        };
+        stats[key] = stat;
+        state.stat = stat;
+      }
+      if (patch.caps) {
+        const caps = { ...patch.caps, kind: classifyByCaps(patch.caps), ts };
+        capabilities[key] = caps;
+        state.caps = caps;
+      }
+      if (patch.kind === "full" || patch.kind === "download") {
+        nodeKinds[key] = patch.kind;
+        state.kind = patch.kind;
+        state.kindSource = "manual";
+      } else if (patch.kind === null) {
+        delete nodeKinds[key];
+        delete state.kind;
+        delete state.kindSource;
+      }
+      if (patch.usageEvent) {
+        const prev = usage[key] ?? { total: 0, ok: 0, fail: 0, avgMs: 0 };
+        const total = prev.total + 1;
+        const next = {
+          total,
+          ok: prev.ok + (patch.usageEvent.ok ? 1 : 0),
+          fail: prev.fail + (patch.usageEvent.ok ? 0 : 1),
+          avgMs: Math.round(
+            ((prev.avgMs ?? 0) * prev.total + (patch.usageEvent.ms ?? 0)) / total,
+          ),
+          lastOk: Boolean(patch.usageEvent.ok),
+          ts,
+        };
+        usage[key] = next;
+        state.usage = next;
+      }
+      nodeState[key] = state;
+    }
+
+    return await set({ stats, capabilities, usage, nodeKinds, nodeState });
+  };
+
+  const result = writeQueue.then(run, run);
+  writeQueue = result.catch(() => {});
+  return result;
+}
+
+/**
+ * 单节点状态写入（测速 / 能力探测 / 使用记录 / 手动分类统一走这里）。
+ * @param {string} value
+ * @param {{ stat?: any; caps?: any; kind?: "full" | "download" | null; usageEvent?: { ok: boolean; ms: number } }} patch
+ */
+export function updateNode(value, patch) {
+  return writeNodePatches({ [value]: patch });
+}
+
+/**
  * 记录一次真实下载结果，用于健康度评分
  * @param {string} value
  * @param {boolean} ok
  * @param {number} [ms]
  */
-export async function recordUsage(value, ok, ms) {
-  const s = await get();
-  const usage = { ...(s.usage ?? {}) };
-  const prev = usage[value] ?? { total: 0, ok: 0, fail: 0, avgMs: 0 };
-  const total = prev.total + 1;
-  usage[value] = {
-    total,
-    ok: prev.ok + (ok ? 1 : 0),
-    fail: prev.fail + (ok ? 0 : 1),
-    avgMs: Math.round(((prev.avgMs ?? 0) * prev.total + (ms ?? 0)) / total),
-    lastOk: Boolean(ok),
-    ts: Date.now(),
-  };
-  return await set({ usage });
+export function recordUsage(value, ok, ms) {
+  return updateNode(value, { usageEvent: { ok: Boolean(ok), ms: Number(ms) || 0 } });
 }
 
 /**
  * 按评分排序的可用节点（带宽高 → 延迟低 → 失败率低的优先）。
- * bestNode 取首个，channels 取前 N 个，两处共用同一套排序。
+ * bestNode 取首个，channels 取前 N 个，页面列表也复用同一套排序。
  * @param {Settings} s
  */
 function rankedNodes(s) {
-  return activeNodes(s)
-    .map((item) => ({ ...item, stat: statOf(s, item.value) }))
-    .sort(
-      (a, b) => scoreOf(a.stat, s.usage?.[a.value]) - scoreOf(b.stat, s.usage?.[b.value]),
-    );
+  return rankNodes(activeNodes(s), s);
 }
 
 /**
@@ -443,11 +513,16 @@ function rankedNodes(s) {
  * @param {Settings} [settings]
  * @returns {string}
  */
-export function bestNode(settings) {
+export function bestNode(settings, kind) {
   const s = settings ?? DEFAULTS;
   if (s.strategy === "manual" && s.manualNode) return s.manualNode;
 
-  const list = rankedNodes(s);
+  let list = rankedNodes(s);
+  // 智能模式：打开仓库 / 一键代理只允许使用「可加速仓库」的节点
+  if (kind) {
+    const filtered = list.filter((n) => kindOf(s, n.value) === kind);
+    if (filtered.length) list = filtered;
+  }
   if (!list.length) return s.fallbackNode || "gh-proxy.com";
 
   // 全新安装（无任何测速数据）时优先用兜底节点
@@ -458,12 +533,37 @@ export function bestNode(settings) {
   return list[0].value;
 }
 
+/** 页面代理 / 展示用的首选节点：智能模式开启时自动过滤掉仅下载节点 */
+export function preferredNode(settings) {
+  const s = settings ?? DEFAULTS;
+  return bestNode(s, s.smartKind === true ? "full" : undefined);
+}
+
+/**
+ * 由能力探测信号派生节点分类（纯函数，无副作用、不读存储）。
+ * - 支持 git smart HTTP → `full`（可加速仓库 / 可直接打开仓库）
+ * - 探测有响应但不支持 git → `download`（仅下载文件）
+ * - 两次探测都没有响应 → `null`（节点不可达，保留原分类，不误标）
+ *
+ * 兼容旧数据：没有 `reachable` 字段时用 `range` 作为「探测有响应」的依据。
+ * @param {{ range?: boolean; git?: boolean; reachable?: boolean } | null | undefined} caps
+ * @returns {"full" | "download" | null}
+ */
+export function classifyByCaps(caps) {
+  if (!caps || typeof caps !== "object") return null;
+  if (caps.git === true) return "full";
+  const reachable =
+    typeof caps.reachable === "boolean" ? caps.reachable : caps.range === true;
+  if (caps.git === false && reachable) return "download";
+  return null;
+}
+
 /**
  * 节点能力分类。
  * - `full`：可加速仓库（支持 clone / git smart HTTP）
  * - `download`：仅下载文件（raw / release / archive），不能加速仓库
  *
- * 判定优先级：用户手动标注 > 运行时能力探测 > 节点自带分类（来自仓库清单）> 默认 full
+ * 判定优先级：用户手动标注 > 测速时自动探测 > 节点自带分类（来自仓库清单）> 默认 full
  * @param {Settings} [settings]
  * @param {string} value
  * @returns {"full" | "download"}
@@ -471,10 +571,13 @@ export function bestNode(settings) {
 export function kindOf(settings, value) {
   const s = settings ?? DEFAULTS;
   const key = nodeKey(value);
-  const manual = s.nodeKinds?.[key];
+  const state = s.nodeState?.[key];
+  const manual =
+    s.nodeKinds?.[key] ?? (state?.kindSource === "manual" ? state?.kind : undefined);
   if (manual === "full" || manual === "download") return manual;
-  // 运行时探测过：不支持 git smart HTTP 的即为下载专用
-  if (s.capabilities?.[key] && s.capabilities[key].git === false) return "download";
+  // 测速时自动探测的结果优先于仓库清单分类（清单可能过时）
+  const auto = classifyByCaps(s.capabilities?.[key] ?? state?.caps);
+  if (auto) return auto;
   // 节点自带分类（仓库清单给出，合并时 download 优先）
   const node = allNodes(s).find((n) => n.value === key);
   if (node?.kind === "download") return "download";
@@ -482,20 +585,32 @@ export function kindOf(settings, value) {
 }
 
 /**
+ * 分类来源，用于设置页区分「测速自动标注」与「手动标注」。
+ * @param {Settings} [settings]
+ * @param {string} value
+ * @returns {"manual" | "auto" | "repo" | "default"}
+ */
+export function kindSource(settings, value) {
+  const s = settings ?? DEFAULTS;
+  const key = nodeKey(value);
+  const state = s.nodeState?.[key];
+  const manual =
+    s.nodeKinds?.[key] ?? (state?.kindSource === "manual" ? state?.kind : undefined);
+  if (manual === "full" || manual === "download") return "manual";
+  if (classifyByCaps(s.capabilities?.[key] ?? state?.caps)) return "auto";
+  const node = allNodes(s).find((n) => n.value === key);
+  if (node?.kind === "download") return "repo";
+  return "default";
+}
+
+/**
  * 设置节点能力分类（手动标注）
  * @param {string} value
  * @param {"full" | "download"} kind
  */
-export async function setNodeKind(value, kind) {
-  const s = await get();
-  const key = nodeKey(value);
-  const nodeKinds = { ...(s.nodeKinds ?? {}) };
-  if (kind === "full" || kind === "download") {
-    nodeKinds[key] = kind;
-  } else {
-    delete nodeKinds[key];
-  }
-  return await set({ nodeKinds });
+export function setNodeKind(value, kind) {
+  const next = kind === "full" || kind === "download" ? kind : null;
+  return updateNode(value, { kind: next });
 }
 
 /**
@@ -616,16 +731,29 @@ export async function set(patch) {
  * @param {string} [latency]
  * @param {string} [speed]
  */
-export async function saveStat(value, latency, speed) {
-  const s = await get();
-  const stats = { ...(s.stats ?? {}) };
-  const prev = stats[value] ?? {};
-  stats[value] = {
-    latency: latency ?? prev.latency,
-    speed: speed ?? prev.speed,
-    ts: Date.now(),
-  };
-  return await set({ stats });
+export function saveStat(value, latency, speed) {
+  /** @type {Record<string, string>} */
+  const stat = {};
+  // 未提供的字段保持上一次结果（测延迟与测带宽分两阶段写入）
+  if (latency !== null && latency !== undefined) stat.latency = String(latency);
+  if (speed !== null && speed !== undefined) stat.speed = String(speed);
+  return updateNode(value, { stat });
+}
+
+/**
+ * 批量写入「测速时自动探测」的能力结果，供 kindOf / kindSource 使用。
+ * 只写 capabilities，不碰 nodeKinds（手动标注），因此用户可以随时手动覆盖自动结果。
+ * @param {Record<string, { range?: boolean; git?: boolean; reachable?: boolean } | null>} entries
+ * @returns {Promise<Settings>}
+ */
+export function saveCapabilities(entries) {
+  /** @type {Record<string, { caps: any }>} */
+  const batch = {};
+  for (const [value, caps] of Object.entries(entries ?? {})) {
+    if (!caps) continue;
+    batch[value] = { caps };
+  }
+  return writeNodePatches(batch);
 }
 
 export const FGStore = {
@@ -646,15 +774,21 @@ export const FGStore = {
   activeNodes,
   statOf,
   bestNode,
+  preferredNode,
   channels,
   buildProxyUrl,
   matchSensitive,
   globToRegExp,
   saveStat,
+  saveCapabilities,
+  writeNodePatches,
+  updateNode,
   dedupe,
   normalize,
   healthOf,
   recordUsage,
+  classifyByCaps,
   kindOf,
+  kindSource,
   setNodeKind,
 };
