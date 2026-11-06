@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "GitHub 加速 · 智能节点版",
-  "version": "2.4.0",
-  "description": "内置 80+ 公益加速节点，区分「可加速仓库」与「仅下载专用」两类；24 小时自动更新、节点测速、jsDelivr CDN 通道与登录保护；GitHub 打不开时自动走加速节点代理。",
+  "version": "2.8.0",
+  "description": "内置 80+ 公益加速节点；一键体检自动完成同步、去重、测速与能力标注；智能模式把可加速仓库的节点用于打开仓库 / clone，仅下载节点留给文件下载；界面主色实时跟随浏览器 / 系统主题色，Material You 深浅双主题、jsDelivr CDN 通道与登录保护；GitHub 打不开时自动走加速节点代理。",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -43,8 +43,11 @@
         "lib/store.js",
         "lib/nodes.js",
         "lib/net.js",
+        "lib/rank.js",
         "lib/repos.js",
-        "lib/routes.js"
+        "lib/routes.js",
+        "lib/theme.js",
+        "lib/ui.js"
       ],
       "matches": ["*://github.com/*"]
     }
