@@ -3,7 +3,7 @@
  */
 
 import { DOWNLOAD_ONLY_HOSTS } from "./repos.js";
-import { buildProxyUrl, replaceRepoNodes } from "./store.js";
+import { buildProxyUrl, nodeKey, replaceRepoNodes } from "./store.js";
 
 /**
  * @typedef {Object} LatencyResult
@@ -261,25 +261,13 @@ function hostOf(url) {
  * @returns {"full" | "download"}
  */
 function kindForHost(value, fallback) {
-  const host = hostOf(String(value ?? "").replace(/\/+$/, "")) || nodeKeyOf(value);
+  const host = hostOf(String(value ?? "").replace(/\/+$/, "")) || nodeKey(value);
   if (DOWNLOAD_ONLY_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) {
     return "download";
   }
   // jsDelivr 的各类镜像域名同样是纯 CDN，只能下文件
   if (host.startsWith("jsdelivr.") || host.endsWith(".jsdelivr.net")) return "download";
   return fallback === "download" ? "download" : "full";
-}
-
-/** 与 store.nodeKey 等价的轻量归一化（避免循环依赖） */
-function nodeKeyOf(value) {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/^[a-z]+:\/\//i, "")
-    .replace(/^www\./, "")
-    .split(/[/?#]/)[0]
-    .replace(/:\d+$/, "")
-    .replace(/^\.+|\.+$/g, "");
 }
 
 /** GitHub 自身及不相关站点，不应作为加速节点 */
@@ -304,7 +292,6 @@ const IGNORED_HOSTS = [
   "schema.org",
   "greasyfork.org", // 脚本托管站
   "example.com", // 文档占位
-  "jsdelivr.net",
   "b-cdn.net", // BunnyCDN，jsDelivr 的上游 CDN
 ];
 
@@ -426,14 +413,23 @@ export async function probeHost(url, timeoutMs) {
 }
 
 /**
- * 探测节点能力：是否支持 Range 断点续传、是否支持 git smart HTTP
+ * @typedef {Object} CapabilityResult
+ * @property {boolean} range 是否支持 Range 断点续传
+ * @property {boolean} git 是否支持 git smart HTTP（可加速仓库）
+ * @property {boolean} reachable 两次探测是否至少有一次拿到响应
+ */
+
+/**
+ * 探测节点能力：是否支持 Range 断点续传、是否支持 git smart HTTP。
+ * `reachable` 用于区分「节点在线但只提供文件下载」与「节点完全不可达」，
+ * 后者不会被误标为下载专用。
  * @param {string} node
  * @param {number} [timeoutMs]
- * @returns {Promise<{ range: boolean; git: boolean }>}
+ * @returns {Promise<CapabilityResult>}
  */
 export async function probeCapabilities(node, timeoutMs) {
   const host = String(node ?? "").replace(/\/+$/, "");
-  if (!host) return { range: false, git: false };
+  if (!host) return { range: false, git: false, reachable: false };
 
   const base = buildProxyUrl(host, "https://github.com/octocat/Hello-World");
   const ms = timeoutMs ?? 8000;
@@ -456,7 +452,20 @@ export async function probeCapabilities(node, timeoutMs) {
     git = text.includes("git-upload-pack") || text.includes("refs/");
   }
 
-  return { range, git };
+  // 只要任意一个请求拿到 HTTP 响应，就认为节点在线、探测结论有效
+  const reachable = Boolean(rangeRes?.status || gitRes?.status);
+  return { range, git, reachable };
+}
+
+/**
+ * 只有延迟可达的节点才值得继续做能力探测，避免对每个超时节点再等两个请求。
+ * @param {string | null | undefined} latency
+ * @returns {boolean}
+ */
+export function shouldProbeCaps(latency) {
+  return (
+    latency !== "timeout" && latency !== null && latency !== undefined && latency !== ""
+  );
 }
 
 /**
@@ -465,13 +474,15 @@ export async function probeCapabilities(node, timeoutMs) {
  * @property {string} latency
  * @property {string} speed
  * @property {number} ts
+ * @property {CapabilityResult | null} [caps] withCaps 开启时的能力探测结果
  */
 
 /**
- * 完整测速：延迟 + 带宽
+ * 完整测速：延迟 + 带宽，可选在同一次调用里完成能力探测（测速即自动标注）。
+ * withCaps 默认关闭，保证纯测速调用（含现有逻辑测试）返回结构不变。
  * @param {string} node
  * @param {string} sampleUrl
- * @param {{ withSpeed?: boolean; latencyTimeout?: number; speedTimeout?: number }} [opts]
+ * @param {{ withSpeed?: boolean; withCaps?: boolean; capsTimeout?: number; latencyTimeout?: number; speedTimeout?: number }} [opts]
  * @returns {Promise<TestResult>}
  */
 export async function testNode(node, sampleUrl, opts) {
@@ -485,7 +496,13 @@ export async function testNode(node, sampleUrl, opts) {
     const speedResult = await testSpeed(node, sampleUrl, options.speedTimeout);
     speed = speedResult.speed;
   }
-  return { value: node, latency, speed, ts: Date.now() };
+  if (options.withCaps !== true) {
+    return { value: node, latency, speed, ts: Date.now() };
+  }
+  const caps = shouldProbeCaps(latency)
+    ? await probeCapabilities(node, options.capsTimeout ?? 4000)
+    : null;
+  return { value: node, latency, speed, caps, ts: Date.now() };
 }
 
 /**
@@ -575,4 +592,5 @@ export const FGNet = {
   testNode,
   probeHost,
   probeCapabilities,
+  shouldProbeCaps,
 };
