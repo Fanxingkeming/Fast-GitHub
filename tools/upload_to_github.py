@@ -27,17 +27,21 @@ import urllib.request
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE_DIR = os.path.join(BASE, "upload")
-DEFAULT_OWNER = "Master-five-elements"
+DEFAULT_OWNER = "Fanxingkeming"
 DEFAULT_REPO = "Fast-GitHub"
 DEFAULT_BRANCH = "main"
+# 仓库已改名；PUT/PATCH 不跟随 307，统一用稳定 ID 调 API
+REPO_API = "https://api.github.com/repositories/1429773758"
 COMMIT_MESSAGE = (
-    "feat(gh-accelerator): 发布 v2.4.0 节点分类 + 星露谷 UI 版\n\n"
-    "- 节点仓库由 3 个扩至 8 个，并按「可加速仓库 / 仅下载专用」能力分类\n"
-    "- 移除早期「页面增强」模块（Web IDE 入口与 Issue 翻译），聚焦核心加速\n"
-    "- 设置页与弹窗改为星露谷素风 UI（暖色羊皮纸 + 木色粗边框 + 硬阴影）\n"
-    "- 重复节点查重合并：sources 合并 + 保留非本仓库来源\n"
-    "- 8 种清单解析器，channels(\"full\") 仅返回可加速节点\n"
-    "- 版本号实时更新至 v2.4.0"
+    "feat(gh-accelerator): 发布 v2.8.0 实时浏览器主题色版\n"
+    "\n"
+    "- 新增 lib/theme.js：系统强调色 CSS 探针 + M3 tonal 调色板 + prefers-color-scheme 实时监听\n"
+    "- Firefox 读取 chrome.theme.getCurrent 的 frame 色；注入面板跟随 GitHub 页面主题色\n"
+    "- 设置页 / 弹窗 / 注入面板共用一套动态配色，前景色自动满足 WCAG AA 4.5:1\n"
+    "- 外观新增「跟随浏览器主题色」开关、来源色块与自定义主色，改动即时生效\n"
+    "- 移除设置页与弹窗左上角 Logo，标题贴左对齐\n"
+    "- 新增 test_theme.mjs（16 项）与 verify_theme_ui.js（23 项）；e2e 36 项全绿\n"
+    "- 修正上一轮提交说明中混入的字面转义符，版本号实时更新至 v2.8.0"
 )
 
 SKIP_DIRS = {"__pycache__", ".git"}
@@ -77,10 +81,7 @@ def api_request(url, token, method="GET", payload=None):
 
 
 def existing_sha(owner, repo, path, branch, token):
-    url = (
-        "https://api.github.com/repos/%s/%s/contents/%s?ref=%s"
-        % (owner, repo, path, branch)
-    )
+    url = "%s/contents/%s?ref=%s" % (REPO_API, path, branch)
     status, data = api_request(url, token)
     if status == 200 and isinstance(data, dict):
         return data.get("sha")
@@ -101,7 +102,7 @@ def upload_file(owner, repo, branch, token, rel_path, abs_path, retries=2, messa
     if sha:
         payload["sha"] = sha
 
-    url = "https://api.github.com/repos/%s/%s/contents/%s" % (owner, repo, rel_path)
+    url = "%s/contents/%s" % (REPO_API, rel_path)
     for attempt in range(retries + 1):
         status, data = api_request(url, token, "PUT", payload)
         if status in (200, 201):
