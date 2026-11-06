@@ -7,7 +7,7 @@ import time
 import urllib.request
 
 TOKEN = os.environ["GITHUB_TOKEN"]
-OWNER = "Master-five-elements"
+OWNER = "Fanxingkeming"
 REPO = "Fast-GitHub"
 BRANCH = "main"
 PREFIX = "gh-accelerator/"
