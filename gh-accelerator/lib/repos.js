@@ -125,8 +125,14 @@ export const NODE_REPOS = [
   },
 ];
 
-/** 默认全部启用 */
+/** 全部仓库 id（用于设置页展示与兼容旧配置） */
 export const DEFAULT_REPO_IDS = NODE_REPOS.map((repo) => repo.id);
+
+/**
+ * 默认启用的互补仓库：主清单、自带能力分类、下载专用各一个。
+ * 其余来源内容高度重叠，默认关闭，需要时可在「更多来源」里单独开启。
+ */
+export const DEFAULT_ENABLED_REPO_IDS = ["ghproxy-next", "mirrorhub", "ns-emu-tools"];
 
 /** 已知仅支持文件下载的节点（CDN 类，确定不支持 git） */
 export const DOWNLOAD_ONLY_HOSTS = [
