@@ -14,7 +14,7 @@ import sys
 import urllib.error
 import urllib.request
 
-OWNER = "Master-five-elements"
+OWNER = "Fanxingkeming"
 REPO = "Fast-GitHub"
 BRANCH = "main"
 TAG = "v2.3.1"
@@ -60,7 +60,7 @@ BODY = """## 🎉 gh-accelerator v2.3.1
 - 第三方公益节点会中转请求，**请勿用于登录、私有仓库或任何带凭证的操作**
 - 登录请直连 `github.com/login`
 
-完整说明见仓库 [README.md](https://github.com/Master-five-elements/Fast-GitHub#readme)。
+完整说明见仓库 [README.md](https://github.com/Fanxingkeming/Fast-GitHub#readme)。
 """
 
 
