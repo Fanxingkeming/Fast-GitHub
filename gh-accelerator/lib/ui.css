@@ -1,69 +1,107 @@
 /* ==================================================================
- * FastGitHub · 星露谷素风（Stardew Valley cozy / rustic）
- * 暖色羊皮纸 + 木色粗边框 + 硬阴影（无模糊）+ 质朴圆角
+ * FastGitHub · Material You (Material Design 3)
+ * Tonal palettes / large corners / soft elevation / state layers /
+ * pill buttons / M3 switch & snackbar.
+ * 变量名与 class 名保持不变，供 popup.css、options.css 复用。
  * ================================================================== */
 
 :root {
-  /* 羊皮纸 / 木色基底 */
-  --fg-bg: #ece0c2;
-  --fg-surface: #fbf3dc;
-  --fg-surface-2: #f2e6c5;
-  --fg-surface-glass: rgba(251, 243, 220, 0.86);
-  --fg-wood: #7a4f2a;
-  --fg-wood-soft: #b78a55;
-  --fg-border: #d8c293;
-  --fg-border-strong: var(--fg-wood);
-  /* 文字 */
-  --fg-text: #43321c;
-  --fg-text-2: #6e5638;
-  --fg-muted: #9c8763;
-  /* 强调色：叶绿 / 蜜黄 / 河蓝 */
-  --fg-accent: #6a994e;
-  --fg-accent-2: #e0a830;
-  --fg-accent-3: #527a96;
-  --fg-accent-soft: #dcebcb;
-  --fg-green: #6a994e;
-  --fg-green-soft: #dcebcb;
-  --fg-amber: #d98a3d;
-  --fg-amber-soft: #f6e0bf;
-  --fg-red: #c14a32;
-  --fg-red-soft: #f3d3c8;
-  /* 硬阴影（无模糊，星露谷标志） */
-  --fg-shadow-hard: 3px 3px 0 rgba(58, 38, 18, 0.22);
-  --fg-shadow-hard-hover: 5px 5px 0 rgba(58, 38, 18, 0.24);
-  --fg-shadow-hard-press: 1px 1px 0 rgba(58, 38, 18, 0.24);
-  --fg-radius: 10px;
-  --fg-radius-sm: 8px;
-  --fg-radius-xs: 6px;
-  --fg-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  /* ---- M3 tonal palette（种子色 紫罗兰 #6750A4）---- */
+  --fg-primary: #6750a4;
+  --fg-on-primary: #ffffff;
+  --fg-primary-container: #eaddff;
+  --fg-on-primary-container: #21005d;
+  --fg-secondary: #625b71;
+  --fg-secondary-container: #e8def8;
+  --fg-on-secondary-container: #1d192b;
+  --fg-tertiary: #7d5260;
+  --fg-tertiary-container: #ffd8e4;
+  --fg-surface-tint: #6750a4;
+
+  /* ---- 兼容旧变量名（语义映射到 M3 tonal surfaces）---- */
+  --fg-bg: #fef7ff;
+  --fg-surface: #ffffff;
+  --fg-surface-2: #f3edf7;
+  --fg-surface-glass: rgba(254, 247, 255, 0.96);
+  --fg-wood: #cac4d0; /* outline-variant */
+  --fg-wood-soft: #e7e0ec;
+  --fg-border: #e7e0ec;
+  --fg-border-strong: #79747e;
+  --fg-text: #1d1b20;
+  --fg-text-2: #49454f;
+  --fg-muted: #79747e;
+  --fg-accent: var(--fg-primary);
+  --fg-accent-2: var(--fg-tertiary);
+  --fg-accent-3: var(--fg-secondary);
+  --fg-accent-soft: var(--fg-primary-container);
+  --fg-green: #2e6b3f;
+  --fg-green-soft: #c4eed0;
+  --fg-amber: #7a5900;
+  --fg-amber-soft: #ffdea6;
+  --fg-red: #b3261e;
+  --fg-red-soft: #f9dedc;
+
+  /* ---- M3 elevation（柔和多层阴影，替代硬投影）---- */
+  --fg-elev-0: none;
+  --fg-elev-1: 0 1px 2px rgba(29, 27, 32, 0.16), 0 1px 3px 1px rgba(29, 27, 32, 0.08);
+  --fg-elev-2: 0 1px 2px rgba(29, 27, 32, 0.16), 0 2px 6px 2px rgba(29, 27, 32, 0.1);
+  --fg-elev-3: 0 4px 8px 3px rgba(29, 27, 32, 0.12), 0 1px 3px rgba(29, 27, 32, 0.16);
+  --fg-shadow-hard: var(--fg-elev-1);
+  --fg-shadow-hard-hover: var(--fg-elev-2);
+  --fg-shadow-hard-press: var(--fg-elev-0);
+
+  /* ---- State layers ---- */
+  --fg-state-hover: 0.08;
+  --fg-state-focus: 0.1;
+  --fg-state-pressed: 0.12;
+  --fg-state-layer: var(--fg-text);
+  --fg-state-on-primary: #ffffff;
+
+  /* ---- Shape（M3 大圆角）---- */
+  --fg-radius: 20px;
+  --fg-radius-sm: 14px;
+  --fg-radius-xs: 8px;
+  --fg-radius-pill: 999px;
+  --fg-ease: cubic-bezier(0.2, 0, 0, 1);
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --fg-bg: #2b2620;
-  --fg-surface: #3a342b;
-  --fg-surface-2: #443d31;
-  --fg-surface-glass: rgba(58, 52, 43, 0.88);
-  --fg-wood: #8a6a45;
-  --fg-wood-soft: #a98456;
-  --fg-border: #5a4d3a;
-  --fg-border-strong: var(--fg-wood);
-  --fg-text: #f1e7d2;
-  --fg-text-2: #c8b594;
-  --fg-muted: #9a876a;
-  --fg-accent: #8fb573;
-  --fg-accent-2: #e7b64a;
-  --fg-accent-3: #7ba3bd;
-  --fg-accent-soft: #3c4a31;
-  --fg-green: #8fb573;
-  --fg-green-soft: #3c4a31;
-  --fg-amber: #e7b64a;
-  --fg-amber-soft: #4d3f2a;
-  --fg-red: #e0735a;
-  --fg-red-soft: #4d3128;
-  --fg-shadow-hard: 3px 3px 0 rgba(0, 0, 0, 0.4);
-  --fg-shadow-hard-hover: 5px 5px 0 rgba(0, 0, 0, 0.45);
-  --fg-shadow-hard-press: 1px 1px 0 rgba(0, 0, 0, 0.45);
+  --fg-primary: #d0bcff;
+  --fg-on-primary: #381e72;
+  --fg-primary-container: #4f378b;
+  --fg-on-primary-container: #eaddff;
+  --fg-secondary: #ccc2dc;
+  --fg-secondary-container: #4a4458;
+  --fg-on-secondary-container: #e8def8;
+  --fg-tertiary: #efb8c8;
+  --fg-tertiary-container: #633b48;
+  --fg-surface-tint: #d0bcff;
+
+  --fg-bg: #141218;
+  --fg-surface: #1d1b20;
+  --fg-surface-2: #2b2930;
+  --fg-surface-glass: rgba(29, 27, 32, 0.96);
+  --fg-wood: #49454f;
+  --fg-wood-soft: #36343b;
+  --fg-border: #36343b;
+  --fg-border-strong: #938f99;
+  --fg-text: #e6e0e9;
+  --fg-text-2: #cac4d0;
+  --fg-muted: #938f99;
+  --fg-accent-soft: var(--fg-primary-container);
+  --fg-green: #a8d8b0;
+  --fg-green-soft: #1f3b25;
+  --fg-amber: #e8c17a;
+  --fg-amber-soft: #3d2f14;
+  --fg-red: #f2b8b5;
+  --fg-red-soft: #3d1d1a;
+
+  --fg-elev-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px 1px rgba(0, 0, 0, 0.35);
+  --fg-elev-2: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px 2px rgba(0, 0, 0, 0.4);
+  --fg-elev-3: 0 4px 8px 3px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.5);
+  --fg-state-layer: var(--fg-text);
+  --fg-state-on-primary: #ffffff;
   color-scheme: dark;
 }
 
@@ -74,126 +112,135 @@
 body.fg-body {
   margin: 0;
   font-family:
-    "Segoe UI", "PingFang SC", "Microsoft YaHei", Verdana, "Helvetica Neue", Helvetica,
-    Arial, sans-serif;
+    "Roboto Flex", Roboto, "Segoe UI Variable", "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", system-ui, sans-serif;
   font-size: 14px;
+  font-weight: 400;
   line-height: 1.6;
+  letter-spacing: 0.01em;
   color: var(--fg-text);
   background-color: var(--fg-bg);
-  /* 农田般的细点纹理，营造素风质感 */
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    rgba(122, 79, 42, 0.06) 1px,
-    transparent 0
-  );
-  background-size: 22px 22px;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ------------------------------- 卡片 ------------------------------- */
 
 .fg-card {
-  padding: 20px;
+  padding: 22px;
   background: var(--fg-surface);
-  border: 2px solid var(--fg-wood);
+  border: 1px solid var(--fg-border);
   border-radius: var(--fg-radius);
-  box-shadow: var(--fg-shadow-hard);
+  box-shadow: var(--fg-elev-1);
 }
 
 .fg-section-title {
   margin: 0 0 4px;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
   color: var(--fg-text);
 }
 
 .fg-section-desc {
   margin: 0 0 18px;
   font-size: 12.5px;
+  font-weight: 400;
   color: var(--fg-muted);
 }
 
-/* ------------------------------- 按钮 ------------------------------- */
+/* ------------------------------- 按钮 -------------------------------
+ * M3：filled / tonal / danger = pill 形，无粗边框，state layer 交互
+ * -------------------------------------------------------------------- */
 
 .fg-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 15px;
-  border: 2px solid var(--fg-wood);
-  border-radius: var(--fg-radius-sm);
-  background: var(--fg-surface-2);
-  color: var(--fg-text);
-  font-size: 13px;
-  font-weight: 700;
+  gap: 8px;
+  height: 40px;
+  padding: 0 22px;
+  overflow: hidden;
+  border: none;
+  border-radius: var(--fg-radius-pill);
+  background: var(--fg-secondary-container);
+  color: var(--fg-on-secondary-container);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: var(--fg-shadow-hard);
+  box-shadow: var(--fg-elev-0);
   transition:
-    transform 0.12s var(--fg-ease),
-    box-shadow 0.12s var(--fg-ease),
-    background 0.16s var(--fg-ease);
+    box-shadow 0.2s var(--fg-ease),
+    background 0.2s var(--fg-ease);
+}
+
+/* state layer */
+.fg-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--fg-state-layer);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--fg-ease);
 }
 
 .fg-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--fg-shadow-hard-hover);
-  background: var(--fg-surface);
+  box-shadow: var(--fg-elev-1);
 }
 
-.fg-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: var(--fg-shadow-hard-press);
+.fg-btn:hover::before {
+  opacity: var(--fg-state-hover);
+}
+
+.fg-btn:focus-visible::before {
+  opacity: var(--fg-state-focus);
+}
+
+.fg-btn:active::before {
+  opacity: var(--fg-state-pressed);
 }
 
 .fg-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.38;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: var(--fg-shadow-hard);
+  box-shadow: var(--fg-elev-0);
+}
+
+.fg-btn:disabled::before {
+  opacity: 0;
 }
 
 .fg-btn-primary {
-  border-color: #4d7433;
-  background: var(--fg-accent);
-  color: #fff;
+  background: var(--fg-primary);
+  color: var(--fg-on-primary);
 }
 
-.fg-btn-primary:hover {
-  background: #5b8a40;
-  color: #fff;
+.fg-btn-primary::before {
+  background: var(--fg-state-on-primary);
 }
 
 .fg-btn-danger {
-  border-color: #8f3320;
-  background: var(--fg-red);
-  color: #fff;
+  background: var(--fg-red-soft);
+  color: var(--fg-red);
 }
 
-.fg-btn-danger:hover {
-  background: #ad3f29;
-  color: #fff;
+.fg-btn-danger::before {
+  background: var(--fg-red);
 }
 
 .fg-btn-sm {
-  height: 30px;
-  padding: 0 11px;
-  font-size: 12px;
-  border-width: 2px;
-  border-radius: var(--fg-radius-xs);
-  box-shadow: 2px 2px 0 rgba(58, 38, 18, 0.22);
+  height: 32px;
+  padding: 0 16px;
+  font-size: 12.5px;
 }
 
-.fg-btn-sm:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 rgba(58, 38, 18, 0.24);
-}
-
-/* ------------------------------ 表单控件 ------------------------------ */
+/* ------------------------------ 表单控件 ------------------------------
+ * M3 outlined text field：1px outline，focus 2px primary
+ * -------------------------------------------------------------------- */
 
 .fg-field {
   margin-bottom: 16px;
@@ -203,7 +250,7 @@ body.fg-body {
   display: block;
   margin-bottom: 6px;
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--fg-text-2);
 }
 
@@ -211,17 +258,17 @@ body.fg-body {
 .fg-select,
 .fg-textarea {
   width: 100%;
-  padding: 9px 12px;
-  border: 2px solid var(--fg-wood-soft);
+  padding: 11px 14px;
+  border: 1px solid var(--fg-border-strong);
   border-radius: var(--fg-radius-sm);
   background: var(--fg-surface);
   color: var(--fg-text);
-  font-size: 13px;
+  font-size: 14px;
   font-family: inherit;
   outline: none;
   transition:
-    border-color 0.16s var(--fg-ease),
-    box-shadow 0.16s var(--fg-ease);
+    border-color 0.2s var(--fg-ease),
+    box-shadow 0.2s var(--fg-ease);
 }
 
 .fg-textarea {
@@ -230,11 +277,17 @@ body.fg-body {
   line-height: 1.65;
 }
 
+.fg-input:hover,
+.fg-select:hover,
+.fg-textarea:hover {
+  border-color: var(--fg-text);
+}
+
 .fg-input:focus,
 .fg-select:focus,
 .fg-textarea:focus {
-  border-color: var(--fg-accent);
-  box-shadow: 0 0 0 3px var(--fg-accent-soft);
+  border-color: var(--fg-primary);
+  box-shadow: 0 0 0 1px var(--fg-primary);
 }
 
 .fg-hint {
@@ -244,8 +297,8 @@ body.fg-body {
 }
 
 .fg-hint a {
-  color: #4d7433;
-  font-weight: 700;
+  color: var(--fg-primary);
+  font-weight: 600;
   text-decoration: none;
 }
 
@@ -253,13 +306,15 @@ body.fg-body {
   text-decoration: underline;
 }
 
-/* ------------------------------- 开关 ------------------------------- */
+/* ------------------------------- 开关 -------------------------------
+ * M3 switch：52x32 track，选中 primary，handle 随状态缩放
+ * -------------------------------------------------------------------- */
 
 .fg-switch {
   position: relative;
   display: inline-flex;
-  width: 44px;
-  height: 26px;
+  width: 52px;
+  height: 32px;
   flex: none;
   cursor: pointer;
 }
@@ -271,37 +326,50 @@ body.fg-body {
   margin: 0;
   opacity: 0;
   cursor: pointer;
+  z-index: 1;
 }
 
 .fg-switch-track {
   position: absolute;
   inset: 0;
-  border: 2px solid var(--fg-wood);
-  border-radius: 999px;
+  border: 2px solid var(--fg-border-strong);
+  border-radius: var(--fg-radius-pill);
   background: var(--fg-surface-2);
-  box-shadow: var(--fg-shadow-hard-press);
-  transition: background 0.22s var(--fg-ease);
+  transition:
+    background 0.25s var(--fg-ease),
+    border-color 0.25s var(--fg-ease);
 }
 
 .fg-switch-track::after {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--fg-wood);
+  top: 7px;
+  left: 7px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--fg-surface);
-  transition: transform 0.22s var(--fg-ease);
+  background: var(--fg-border-strong);
+  transition:
+    transform 0.25s var(--fg-ease),
+    width 0.25s var(--fg-ease),
+    height 0.25s var(--fg-ease),
+    top 0.25s var(--fg-ease),
+    left 0.25s var(--fg-ease),
+    background 0.25s var(--fg-ease);
 }
 
 .fg-switch input:checked + .fg-switch-track {
-  background: var(--fg-accent);
+  background: var(--fg-primary);
+  border-color: var(--fg-primary);
 }
 
 .fg-switch input:checked + .fg-switch-track::after {
-  transform: translateX(18px);
+  top: 5px;
+  left: 5px;
+  width: 18px;
+  height: 18px;
+  background: var(--fg-on-primary);
+  transform: translateX(20px);
 }
 
 /* 仅屏幕阅读器可见 */
@@ -323,7 +391,7 @@ body.fg-body {
   justify-content: space-between;
   gap: 14px;
   padding: 14px 0;
-  border-bottom: 2px dashed var(--fg-border);
+  border-bottom: 1px solid var(--fg-border);
 }
 
 .fg-row:last-child {
@@ -331,8 +399,8 @@ body.fg-body {
 }
 
 .fg-row-title {
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--fg-text);
 }
 
@@ -342,47 +410,62 @@ body.fg-body {
   color: var(--fg-muted);
 }
 
-/* ------------------------------- 徽章 ------------------------------- */
+/* ------------------------------- 徽章 -------------------------------
+ * M3 assist chip：pill 形，tonal 背景，无边框
+ * -------------------------------------------------------------------- */
 
 .fg-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border: 1.5px solid var(--fg-wood-soft);
-  border-radius: var(--fg-radius-xs);
+  gap: 5px;
+  padding: 4px 11px;
+  border: none;
+  border-radius: var(--fg-radius-pill);
   background: var(--fg-surface-2);
   color: var(--fg-text-2);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .fg-badge-good {
-  border-color: rgba(106, 153, 78, 0.6);
   background: var(--fg-green-soft);
-  color: #3f6b2a;
+  color: var(--fg-green);
 }
 
 .fg-badge-mid {
-  border-color: rgba(217, 138, 61, 0.6);
   background: var(--fg-amber-soft);
-  color: #9a5a18;
+  color: var(--fg-amber);
 }
 
 .fg-badge-bad {
-  border-color: rgba(193, 74, 50, 0.6);
   background: var(--fg-red-soft);
-  color: #a43a25;
+  color: var(--fg-red);
 }
 
 .fg-badge-accent {
-  border-color: rgba(106, 153, 78, 0.6);
-  background: var(--fg-accent-soft);
-  color: #3f6b2a;
+  background: var(--fg-primary-container);
+  color: var(--fg-on-primary-container);
 }
 
-/* ------------------------------ 提示条 ------------------------------ */
+/* 测速自动标注：M3 outlined chip，与实心分类徽章区分开 */
+.fg-badge-auto {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border: 1px solid var(--fg-primary);
+  border-radius: var(--fg-radius-pill);
+  background: transparent;
+  color: var(--fg-primary);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ------------------------------ Snackbar ------------------------------
+ * M3 snackbar：inverse surface，柔和 elevation
+ * -------------------------------------------------------------------- */
 
 .fg-toast-wrap {
   position: fixed;
@@ -397,28 +480,33 @@ body.fg-body {
 .fg-toast {
   min-width: 200px;
   max-width: 340px;
-  padding: 11px 15px;
-  border: 2px solid var(--fg-wood);
-  border-radius: var(--fg-radius-sm);
-  background: var(--fg-surface);
-  box-shadow: var(--fg-shadow-hard);
+  padding: 13px 17px;
+  border: none;
+  border-radius: 12px;
+  background: #322f35;
+  color: #f5eff7;
+  box-shadow: var(--fg-elev-3);
   font-size: 13px;
-  font-weight: 600;
-  animation: fg-toast-in 0.22s var(--fg-ease);
+  font-weight: 500;
+  animation: fg-toast-in 0.3s var(--fg-ease);
 }
 
 .fg-toast.is-ok {
-  border-left: 5px solid var(--fg-green);
+  box-shadow:
+    inset 4px 0 0 #a8d8b0,
+    var(--fg-elev-3);
 }
 
 .fg-toast.is-err {
-  border-left: 5px solid var(--fg-red);
+  box-shadow:
+    inset 4px 0 0 #f2b8b5,
+    var(--fg-elev-3);
 }
 
 @keyframes fg-toast-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(16px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -429,12 +517,12 @@ body.fg-body {
 /* ------------------------------ 加载动画 ------------------------------ */
 
 .fg-spinner {
-  width: 14px;
-  height: 14px;
-  border: 3px solid var(--fg-wood-soft);
-  border-top-color: var(--fg-accent);
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--fg-primary-container);
+  border-top-color: var(--fg-primary);
   border-radius: 50%;
-  animation: fg-spin 0.7s linear infinite;
+  animation: fg-spin 0.8s linear infinite;
   flex: none;
 }
 
@@ -445,20 +533,20 @@ body.fg-body {
 }
 
 .fg-progress {
-  height: 8px;
+  height: 4px;
   overflow: hidden;
-  border: 2px solid var(--fg-wood);
-  border-radius: 999px;
-  background: var(--fg-surface-2);
+  border: none;
+  border-radius: var(--fg-radius-pill);
+  background: var(--fg-primary-container);
 }
 
 .fg-progress > i {
   display: block;
   width: 0;
   height: 100%;
-  border-radius: 999px;
-  background: var(--fg-accent);
-  transition: width 0.25s var(--fg-ease);
+  border-radius: var(--fg-radius-pill);
+  background: var(--fg-primary);
+  transition: width 0.3s var(--fg-ease);
 }
 
 .fg-empty {
