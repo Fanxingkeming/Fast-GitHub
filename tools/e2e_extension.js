@@ -26,6 +26,23 @@ function check(name, ok, extra) {
   console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}${extra ? `  -> ${extra}` : ""}`);
 }
 
+/** 折叠区（<details>）内的控件用页面内 click 触发，避免被 display:none 拦截 */
+async function clickEl(page, selector) {
+  await page.evaluate((sel) => document.querySelector(sel)?.click(), selector);
+}
+
+/** 折叠区内的输入框直接赋值，不依赖可见性 */
+async function setInput(page, selector, value) {
+  await page.evaluate(
+    (sel, val) => {
+      const el = document.querySelector(sel);
+      if (el) el.value = val;
+    },
+    selector,
+    value,
+  );
+}
+
 /** 递归复制目录 */
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
@@ -119,19 +136,23 @@ async function verifyOptions(browser, extId) {
   const mergeText = await page.$eval("#mergeInfo", (el) => (el.textContent ?? "").trim());
   check("显示去重统计信息", mergeText.length > 0, mergeText.slice(0, 46));
 
-  await page.click("#btnDedupe");
+  await clickEl(page, "#btnDedupe");
   await new Promise((r) => setTimeout(r, 600));
   const afterDedupe = await page.$eval("#mergeInfo", (el) => (el.textContent ?? "").trim());
   check("点击去重按钮有反馈", afterDedupe.length > 0, afterDedupe.slice(0, 46));
 
-  // 仓库开关
-  await page.click('#repoList input[data-repo="adss"]');
-  await new Promise((r) => setTimeout(r, 400));
-  const adssOff = await page.$eval(
+  // 仓库开关（默认只启用 3 个来源，故验证状态翻转而非固定值）
+  const repoBefore = await page.$eval(
     '#repoList input[data-repo="adss"]',
     (el) => el.checked,
   );
-  check("仓库开关可切换", adssOff === false);
+  await clickEl(page, '#repoList input[data-repo="adss"]');
+  await new Promise((r) => setTimeout(r, 400));
+  const repoAfter = await page.$eval(
+    '#repoList input[data-repo="adss"]',
+    (el) => el.checked,
+  );
+  check("仓库开关可切换", repoAfter === !repoBefore, `${repoBefore} → ${repoAfter}`);
 
   // 切换到「登录保护」
   await page.click('[data-tab="guard"]');
@@ -150,7 +171,7 @@ async function verifyOptions(browser, extId) {
 
   // 添加一条自定义规则
   await page.type("#ruleInput", "/my-secret/*");
-  await page.click("#btnAddRule");
+  await clickEl(page, "#btnAddRule");
   await new Promise((r) => setTimeout(r, 500));
   const afterAdd = await page.$eval("#ruleCount", (el) => Number(el.textContent));
   check("可新增白名单规则", afterAdd === Number(ruleCount) + 1, `${afterAdd} 条`);
@@ -161,7 +182,7 @@ async function verifyOptions(browser, extId) {
     if (wrap) wrap.replaceChildren();
   });
   await page.type("#testUrlInput", "https://github.com/login");
-  await page.click("#btnTestUrl");
+  await clickEl(page, "#btnTestUrl");
   await new Promise((r) => setTimeout(r, 300));
   const blocked = await page.$eval("#testUrlResult", (el) => el.textContent ?? "");
   check("规则自检判定登录页受保护", blocked.includes("受保护"), blocked.trim());
@@ -170,7 +191,7 @@ async function verifyOptions(browser, extId) {
     const input = document.getElementById("testUrlInput");
     input.value = "https://github.com/torvalds/linux";
   });
-  await page.click("#btnTestUrl");
+  await clickEl(page, "#btnTestUrl");
   await new Promise((r) => setTimeout(r, 300));
   const allowed = await page.$eval("#testUrlResult", (el) => el.textContent ?? "");
   check("规则自检放行普通仓库页", allowed.includes("未命中"), allowed.trim());
@@ -201,11 +222,12 @@ async function verifyOptions(browser, extId) {
   const healthItems = await page.$$eval("#healthList .health-item", (els) => els.length);
   check("健康度列表渲染", healthItems > 0, `${healthItems} 项`);
 
-  await page.type(
+  await setInput(
+    page,
     "#routeTestInput",
     "https://raw.githubusercontent.com/torvalds/linux/master/README",
   );
-  await page.click("#btnRouteTest");
+  await clickEl(page, "#btnRouteTest");
   await new Promise((r) => setTimeout(r, 400));
   const routeResult = await page.$eval("#routeTestResult", (el) => el.textContent ?? "");
   check(
@@ -218,7 +240,7 @@ async function verifyOptions(browser, extId) {
   await page.evaluate(() => {
     document.getElementById("toastWrap")?.replaceChildren();
   });
-  await page.click("#btnProbe");
+  await clickEl(page, "#btnProbe");
   await new Promise((r) => setTimeout(r, 25000));
   const probeText = await page.$eval("#probeList", (el) => el.textContent ?? "");
   check(
@@ -227,26 +249,31 @@ async function verifyOptions(browser, extId) {
     probeText.replace(/\s+/g, " ").trim().slice(0, 60),
   );
 
-  // ESM service worker 是否真实响应消息
+  // ESM service worker 是否真实响应消息（收敛后保留的跨上下文接口之一）
   const swResult = await page.evaluate(async () => {
-    const res = await chrome.runtime.sendMessage({ type: "getSettings" });
-    return res;
+    const res = await chrome.runtime.sendMessage({ type: "markPrivate", url: "" });
+    const mod = await import("/lib/store.js");
+    const s = await mod.FGStore.get();
+    return { ok: Boolean(res?.ok), rules: s.sensitivePaths?.length ?? 0 };
   });
   check(
-    "background(ESM) 响应消息并返回设置",
-    Boolean(swResult?.ok && swResult.settings?.sensitivePaths?.length),
-    `规则 ${swResult?.settings?.sensitivePaths?.length ?? 0} 条`,
+    "background(ESM) 响应消息且设置可读",
+    swResult.ok === true && swResult.rules > 20,
+    `消息 ${swResult.ok} · 规则 ${swResult.rules} 条`,
   );
 
-  // 白名单拦截是否由后台真实执行
+  // 登录保护判定（后台与页面共用同一个纯函数）
   const guard = await page.evaluate(async () => {
-    const res = await chrome.runtime.sendMessage({
-      type: "checkSensitive",
-      url: "https://github.com/login",
-    });
-    return res;
+    const mod = await import("/lib/store.js");
+    const s = await mod.FGStore.get();
+    return {
+      blocked: Boolean(
+        s.protectSensitive &&
+          mod.FGStore.matchSensitive("https://github.com/login", s.sensitivePaths),
+      ),
+    };
   });
-  check("后台判定登录页受保护", guard?.blocked === true, JSON.stringify(guard));
+  check("登录保护规则命中登录页", guard?.blocked === true, JSON.stringify(guard));
 
   // 反馈通道：关于页卡片
   await page.click('[data-tab="about"]');
@@ -263,7 +290,7 @@ async function verifyOptions(browser, extId) {
   check(
     "设置页关于含反馈卡片且地址正确",
     feedback.hasCard &&
-      feedback.href === "https://github.com/Master-five-elements/Fast-GitHub/issues",
+      feedback.href === "https://github.com/Fanxingkeming/Fast-GitHub/issues",
     `${feedback.text} | ${feedback.href}`,
   );
 
@@ -285,13 +312,13 @@ async function verifyPopup(browser, extId) {
   check("弹窗显示当前节点", node !== "" && node !== "—", node);
 
   const hasButtons = await page.$$eval(".p-actions button", (els) => els.length);
-  check("弹窗操作按钮齐全", hasButtons >= 5, `${hasButtons} 个`);
+  check("弹窗操作精简为高频 2 项", hasButtons === 2, `${hasButtons} 个`);
 
   // 反馈通道：弹窗页脚链接
   const popupFeedback = await page.$eval(".pf-link", (el) => el.getAttribute("href"));
   check(
     "弹窗含反馈链接且地址正确",
-    popupFeedback === "https://github.com/Master-five-elements/Fast-GitHub/issues",
+    popupFeedback === "https://github.com/Fanxingkeming/Fast-GitHub/issues",
     popupFeedback,
   );
 
@@ -385,6 +412,17 @@ async function verifyContentScript(browser, extId) {
     );
     check("加速按钮文案正确", triggerText.includes("加速"), triggerText.trim());
 
+    const injectedTheme = await page.evaluate(() => ({
+      primary: document.documentElement.style.getPropertyValue("--fgm-primary"),
+      surface: document.documentElement.style.getPropertyValue("--fgm-surface"),
+    }));
+    check(
+      "注入面板已应用浏览器动态主题色",
+      /^#[0-9a-f]{6}$/.test(injectedTheme.primary) &&
+        /^#[0-9a-f]{6}$/.test(injectedTheme.surface),
+      JSON.stringify(injectedTheme),
+    );
+
     // 反馈通道：注入面板底部链接
     const panelFeedback = await page.$eval(
       "#fg-speed-btn .fg-panel-feedback",
@@ -392,7 +430,7 @@ async function verifyContentScript(browser, extId) {
     );
     check(
       "注入面板含反馈链接且地址正确",
-      panelFeedback === "https://github.com/Master-five-elements/Fast-GitHub/issues",
+      panelFeedback === "https://github.com/Fanxingkeming/Fast-GitHub/issues",
       panelFeedback,
     );
   }
