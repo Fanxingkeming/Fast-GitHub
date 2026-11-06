@@ -7,7 +7,7 @@ import sys
 import urllib.error
 import urllib.request
 
-OWNER = "Master-five-elements"
+OWNER = "Fanxingkeming"
 REPO = "Fast-GitHub"
 BRANCH = "main"
 
