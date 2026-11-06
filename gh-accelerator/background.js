@@ -6,8 +6,9 @@
  */
 
 import { FGNet } from "./lib/net.js";
-import { decideRoute, HOST_PROFILES } from "./lib/routes.js";
+import { HOST_PROFILES } from "./lib/routes.js";
 import { FGStore, matchSensitive } from "./lib/store.js";
+import { buildSyncPatch } from "./lib/sync.js";
 
 const ALARM_SYNC = "fg-node-sync";
 const ALARM_PROBE = "fg-host-probe";
@@ -67,34 +68,9 @@ async function syncNodes(reason) {
   if (!settings.autoUpdate && !["manual", "install"].includes(reason)) {
     return { ok: false, nodes: [], source: "", error: "autoUpdate disabled" };
   }
-
-  const repos = FGStore.enabledRepos(settings);
-  const sync = await FGNet.syncAllRepos(settings, repos, 15000);
-  // 自定义源也会作为一个虚拟仓库参与同步，分母要算上它
-  const totalSources =
-    repos.length + (settings.updateSources?.filter(Boolean).length ? 1 : 0);
-
-  /** @type {Record<string, number>} */
-  const counts = {};
-  for (const item of sync.results) counts[item.id] = item.count;
-
-  if (sync.okCount) {
-    const merged = FGStore.mergeStats(
-      FGStore.allNodes({ ...settings, remoteNodes: sync.nodes }),
-    );
-    await FGStore.set({
-      remoteNodes: sync.nodes,
-      repoCounts: counts,
-      lastUpdate: Date.now(),
-      lastUpdateMessage: `已同步 ${sync.okCount}/${totalSources} 个源 · 去重后 ${merged.unique} 个节点`,
-    });
-  } else {
-    await FGStore.set({
-      repoCounts: counts,
-      lastUpdateMessage: `同步失败：${String(sync.results[0]?.error ?? "").slice(0, 140)}`,
-    });
-  }
-  return { ok: sync.okCount > 0, ...sync };
+  const result = await buildSyncPatch(settings);
+  await FGStore.set(result.patch);
+  return result;
 }
 
 /**
@@ -170,13 +146,15 @@ function injectProxyBanner(tabId) {
           "left:0",
           "right:0",
           "z-index:2147483647",
-          "padding:8px 14px",
-          "background:#8a4b2b",
-          "color:#fff",
+          "padding:10px 16px",
+          "background:#f9dedc",
+          "color:#410e0b",
           "font-size:13px",
+          "font-weight:500",
           "text-align:center",
-          "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif",
-          "box-shadow:0 2px 10px rgba(0,0,0,.3)",
+          "font-family:Roboto,'Segoe UI Variable','Segoe UI','PingFang SC','Microsoft YaHei',sans-serif",
+          "box-shadow:0 1px 2px rgba(29,27,32,.16),0 1px 3px 1px rgba(29,27,32,.08)",
+          "border-bottom:1px solid #e7e0ec",
         ].join(";");
         (document.documentElement ?? document.body).appendChild(bar);
       },
@@ -199,7 +177,7 @@ async function autoProxyTab(tabId, url) {
     return false;
   }
 
-  const node = FGStore.bestNode(settings) || settings.fallbackNode;
+  const node = FGStore.preferredNode(settings) || settings.fallbackNode;
   if (!node) return false;
 
   const target = FGStore.buildProxyUrl(node, url);
@@ -207,7 +185,7 @@ async function autoProxyTab(tabId, url) {
     await chrome.tabs.update(tabId, { url: target });
     bannerPending.add(tabId);
     try {
-      await chrome.action.setBadgeBackgroundColor({ color: "#7c3aed", tabId });
+      await chrome.action.setBadgeBackgroundColor({ color: "#6750a4", tabId });
       await chrome.action.setBadgeText({ text: "代理", tabId });
     } catch {
       /* badge 失败不影响主流程 */
@@ -257,47 +235,16 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
 /* ------------------------------- 消息 ------------------------------- */
 
 /**
- * 所有消息处理函数。返回 Promise 或同步执行均可，统一由下面的 listener 兜底。
+ * 只保留真正需要跨上下文的消息：同步、代理当前标签页、域名探测、私有页登记。
+ * 测速 / 能力标注 / 路由判定 / 设置读写 / 使用统计均由页面直接调用 lib/，
+ * 不再经由 service worker 转发，避免同一能力存在两套实现。
  * @type {Record<string, (msg: any, reply: (payload: unknown) => void) => unknown>}
  */
 const HANDLERS = {
-  getSettings: async (_msg, reply) => {
-    reply({ ok: true, settings: await FGStore.get() });
-  },
-
-  setSettings: async (msg, reply) => {
-    const settings = await FGStore.set(msg.patch ?? {});
-    await scheduleSync();
-    reply({ ok: true, settings });
-  },
-
   syncNodes: async (_msg, reply) => {
     const result = await syncNodes("manual");
     await scheduleSync();
     reply({ ok: Boolean(result.ok), result });
-  },
-
-  testNode: async (msg, reply) => {
-    const settings = await FGStore.get();
-    const result = await FGNet.testNode(msg.value, settings.speedTestUrl, {
-      withSpeed: msg.withSpeed !== false,
-    });
-    await FGStore.saveStat(msg.value, result.latency, result.speed);
-    reply({ ok: true, result });
-  },
-
-  testNodes: async (msg, reply) => {
-    const settings = await FGStore.get();
-    /** @type {any[]} */
-    const results = [];
-    for (const value of msg.values ?? []) {
-      const result = await FGNet.testNode(value, settings.speedTestUrl, {
-        withSpeed: msg.withSpeed !== false,
-      });
-      await FGStore.saveStat(value, result.latency, result.speed);
-      results.push(result);
-    }
-    reply({ ok: true, results });
   },
 
   proxyTab: async (msg, reply) => {
@@ -318,7 +265,7 @@ const HANDLERS = {
       return;
     }
 
-    const node = msg.node ?? FGStore.bestNode(settings) ?? settings.fallbackNode;
+    const node = msg.node ?? FGStore.preferredNode(settings) ?? settings.fallbackNode;
     const url = FGStore.buildProxyUrl(node, source);
     bannerPending.add(tab.id);
     await chrome.tabs.update(tab.id, { url });
@@ -327,39 +274,6 @@ const HANDLERS = {
 
   probeHosts: async (_msg, reply) => {
     reply({ ok: true, probes: await runProbes() });
-  },
-
-  route: async (msg, reply) => {
-    const settings = await FGStore.get();
-    const decision = decideRoute(msg.url, { settings, probes: settings.probes });
-    reply({ ok: true, decision });
-  },
-
-  recordUsage: async (msg, reply) => {
-    await FGStore.recordUsage(msg.value, Boolean(msg.ok), Number(msg.ms) || 0);
-    reply({ ok: true });
-  },
-
-  probeCapabilities: async (msg, reply) => {
-    const result = await FGNet.probeCapabilities(msg.value, 8000);
-    const settings = await FGStore.get();
-    const key = FGStore.nodeKey(msg.value);
-    // git 探测失败 => 下载专用；成功 => 可加速仓库（除非用户手动标注过）
-    const kind = result.git ? "full" : "download";
-    const nodeKinds = { ...(settings.nodeKinds ?? {}) };
-    if (nodeKinds[key] === undefined) nodeKinds[key] = kind;
-    await FGStore.set({
-      capabilities: { ...(settings.capabilities ?? {}), [key]: result },
-      nodeKinds,
-    });
-    reply({ ok: true, result, kind });
-  },
-
-  checkSensitive: async (msg, reply) => {
-    const settings = await FGStore.get();
-    reply({
-      blocked: Boolean(settings.protectSensitive && isSensitiveUrl(msg.url, settings)),
-    });
   },
 
   markPrivate: (msg, reply) => {
