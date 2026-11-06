@@ -5,10 +5,10 @@
 Slow GitHub access, stalled Release downloads, stuck clones? This browser extension
 rewrites download links to accelerated channels.
 
-![Version](https://img.shields.io/badge/version-v2.4.0-blue)
+![Version](https://img.shields.io/badge/version-v2.8.0-blue)
 ![Manifest](https://img.shields.io/badge/manifest-v3-orange)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![Tests](https://img.shields.io/badge/tests-50%2B%20logic%20%2B%2035%20e2e-brightgreen)
+![Tests](https://img.shields.io/badge/tests-50%2B%20logic%20%2B%2036%20e2e-brightgreen)
 
 > 中文说明见 [`README.md`](./README.md)。This is the English summary.
 
@@ -32,10 +32,10 @@ in any writing, review, or testing.**
 
 | Path | Contents | Status |
 | --- | --- | --- |
-| [`gh-accelerator/`](./gh-accelerator) | **Current version v2.4.0**, modern MV3 extension | ✅ Recommended |
+| [`gh-accelerator/`](./gh-accelerator) | **Current version v2.8.0**, modern MV3 extension | ✅ Recommended |
 | [`legacy/`](./legacy) | Archived previous version (gh-accelerator v2.2.0) | 📦 Archive only |
 | [`fast_github/`](./fast_github) | Legacy v1.5.10 source (Vite + React + Tailwind) | 📦 Archive only, unmaintained |
-| [`tools/`](./tools) | Node-list generation and verification scripts | ✅ Maintained with v2.4.0 |
+| [`tools/`](./tools) | Node-list generation and verification scripts | ✅ Maintained with v2.8.0 |
 
 The legacy `zip/` folder (9 packages, v1.5.2 – v1.5.10) has been removed. For the old
 build use the [Edge Addons listing](https://microsoftedge.microsoft.com/addons/detail/github%E5%8A%A0%E9%80%9F/alhnbdjjbokpmilgemopoomnldpejihb)
@@ -43,43 +43,60 @@ or git history.
 
 ---
 
-## 🚀 Current version: gh-accelerator v2.4.0
+## 🚀 Current version: gh-accelerator v2.8.0
 
 A complete MV3 rewrite of the old v1.5.10. Upstream project:
 [fhefh2015/Fast-GitHub](https://github.com/fhefh2015/Fast-GitHub) (Apache-2.0); the new
 version keeps the same license.
 
-> **v2.4.0 highlights**: node repositories expanded from 3 to **8** and **classified**
-> as acceleratable vs download-only; the early "page enhancement" module (Web IDE entry
-> and issue translation) was removed to focus on core acceleration; the settings page and
-> popup were restyled with a **Stardew Valley** look.
+> **v2.8.0 highlights**: **the UI palette follows the browser / system accent colour in
+> real time** — a CSS system-colour probe supplies the seed, a Material You tonal mapping
+> generates the whole light/dark palette, and changing the OS colour scheme or accent
+> recomputes it without restarting the extension. On Firefox the browser theme frame colour
+> is read directly; the injected GitHub panel also follows the page accent. A custom colour
+> override lives in Appearance. The top-left Logo is gone and the title is left-aligned.
+> One-click checkup, smart mode and the leaner UI from v2.7.0 are retained.
 
 ### Features
 
-- **81 built-in community nodes**, synced every **24 hours** from **8 curated active
-  node repositories**, each with 4 fallback mirrors
+- **81 built-in community nodes**, synced every **24 hours** from **8 curated repositories**
+  (3 complementary sources enabled by default, the rest under "More sources"), each with
+  4 fallback mirrors
 - Nodes are **classified by capability**: **acceleratable repos (full)** support clone /
   git smart HTTP and downloads; **download-only (download)** can only fetch files
   (raw / release / archive), not accelerate clones
+- **One-click checkup**: sync, dedupe, latency/bandwidth tests, automatic capability
+  labelling and best-node selection in one action, with a summary; the node list uses a
+  status dot and lets you override the label from the "..." menu
+- **Smart mode**: page proxying and clone use acceleratable nodes only; download-only
+  nodes are reserved for file downloads
 - **Custom node sources** in the settings page, merged with the repositories
 - **Deduplication**: case, protocol, `www.`, port and path normalized before merging
 - **Speed test**: HEAD latency + real bandwidth measurement; capability probes
-  (Range requests, git smart HTTP); health scoring from real usage
+  (Range requests, git smart HTTP); health scoring from real usage; one shared ranking
+  implementation is used by the background, options page and popup
+- **Live theme colour**: dark/light follows `prefers-color-scheme`, the seed follows the
+  system accent; 48 M3 variables are generated with WCAG AA contrast for buttons,
+  containers and body text
 - **Smart routing**: `raw` files via **jsDelivr CDN**; `api`/`codeload` direct when
   reachable; GitHub pages via nodes with auto-proxy fallback; connectivity re-probed
   every 6 hours
 - **Security**: auto-proxy on navigation failure with a safety banner; **editable
   login-protection whitelist** (33 default rules, wildcard support, live self-check);
   private repos reported at runtime and never proxied
-- **UI**: Stardew Valley cozy / rustic — warm parchment and wood tones, thick borders
-  with hard (no-blur) shadows, forest-green sidebar; light/dark themes
+- **UI (Material You / Material Design 3)**: violet-seeded **tonal palettes**
+  (primary / secondary / tertiary containers), **large corners** (20px cards, pill buttons),
+  no thick borders, **soft multi-layer elevation** and **state-layer** feedback (8/10/12%)
+- M3 components: filled / tonal buttons, 52x32 switch, assist chips, inverse-surface
+  snackbar, pill-shaped nav indicator; full light/dark themes; injected elements use
+  isolated `--fgm-*` variables that follow GitHub's color mode without leaking
 - **Zero-build** native MV3 (ESM + JSDoc), formatted and linted with **Biome**
 
 ### Install
 
-1. Download `gh-accelerator-v2.4.0.zip` from
-   [Releases](https://github.com/Master-five-elements/Fast-GitHub/releases/latest)
-2. Unzip to get the `gh-accelerator-v2.4.0/` folder
+1. Download `gh-accelerator-v2.8.0.zip` from
+   [Releases](https://github.com/Fanxingkeming/Fast-GitHub/releases/latest)
+2. Unzip to get the `gh-accelerator-v2.8.0/` folder
 3. Open `chrome://extensions` (Edge: `edge://extensions`)
 4. Enable **Developer mode**
 5. Click **Load unpacked** and select the folder
@@ -89,6 +106,7 @@ Or load [`gh-accelerator/`](./gh-accelerator) straight from a clone — no build
 ### Verification
 
 ```bash
+node tools/test_auto_kind.mjs                                     # 42 auto-labelling regression tests
 node tools/smoke_test.mjs                                          # 50+ logic tests (mock chrome + fetch)
 NODE_PATH=<workspace>/node_modules node tools/e2e_extension.js    # 35 end-to-end tests (puppeteer-core driving local Edge)
 ```
