@@ -1,9 +1,11 @@
+/* ================= 弹窗 · Material You (Material Design 3) ================= */
+
 .popup-body {
-  width: 348px;
+  width: 360px;
   padding: 0;
 }
 
-/* --------------------------- 木色顶栏 --------------------------- */
+/* --------------------------- M3 Top app bar --------------------------- */
 
 .ph {
   position: sticky;
@@ -13,89 +15,72 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
-  background: #6a994e;
-  border-bottom: 3px solid #4d7433;
-  color: #fff;
+  padding: 16px 20px;
+  background: var(--fg-primary-container);
+  color: var(--fg-on-primary-container);
 }
 
 .ph-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.brand-logo {
-  display: flex;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #3f5e27;
-  border-radius: 9px;
-  background: #fbf3dc;
-  color: #4d7433;
-  font-size: 13px;
-  font-weight: 800;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+  display: block;
+  min-width: 0;
+  text-align: left;
 }
 
 .ph-title {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .ph-sub {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 11px;
-  font-weight: 600;
+  color: var(--fg-on-primary-container);
+  font-size: 11.5px;
+  font-weight: 400;
+  opacity: 0.8;
 }
 
-/* ------------------------------ 节点卡片 ------------------------------ */
+/* ------------------------------ M3 Filled card ------------------------------ */
 
 .p-card {
-  margin: 12px;
-  padding: 15px;
-  background: var(--fg-surface);
-  border: 2px solid var(--fg-wood);
-  border-radius: var(--fg-radius);
-  box-shadow: var(--fg-shadow-hard);
+  margin: 14px;
+  padding: 18px;
+  background: var(--fg-surface-2);
+  border: none;
+  border-radius: 20px;
 }
 
 .p-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .p-card-label {
   color: var(--fg-muted);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .p-node {
   overflow: hidden;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 600;
   color: var(--fg-text);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .p-metrics {
   display: flex;
-  gap: 6px;
-  margin: 10px 0 12px;
+  gap: 8px;
+  margin: 12px 0 14px;
 }
 
 .p-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .p-actions .fg-btn {
@@ -109,18 +94,18 @@
 /* ------------------------------ 当前页面 ------------------------------ */
 
 .p-block {
-  margin: 0 12px 12px;
-  padding: 13px 15px;
-  background: var(--fg-surface);
-  border: 2px solid var(--fg-wood);
-  border-radius: var(--fg-radius);
+  margin: 0 14px 14px;
+  padding: 16px 18px;
+  background: var(--fg-surface-2);
+  border: none;
+  border-radius: 20px;
 }
 
 .p-block-title {
   margin-bottom: 6px;
   color: var(--fg-muted);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .p-url {
@@ -139,9 +124,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 16px;
-  background: var(--fg-surface-2);
-  border-top: 2px solid var(--fg-border);
+  padding: 12px 20px;
+  background: var(--fg-surface);
+  border-top: 1px solid var(--fg-border);
   color: var(--fg-muted);
   font-size: 11.5px;
 }
@@ -149,18 +134,18 @@
 .pf-links {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .pf-link {
-  color: #4d7433;
-  font-weight: 700;
+  color: var(--fg-primary);
+  font-weight: 600;
   font-size: 11.5px;
   text-decoration: none;
-  transition: opacity 0.16s var(--fg-ease);
+  transition: opacity 0.2s var(--fg-ease);
 }
 
 .pf-link:hover {
-  opacity: 0.75;
+  opacity: 0.7;
   text-decoration: underline;
 }
