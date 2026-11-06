@@ -10,6 +10,9 @@
  */
 let store = null;
 let routes = null;
+let ui = null;
+let theme = null;
+let themeApplied = false;
 
 async function ensureLibs() {
   if (!store) {
@@ -19,7 +22,13 @@ async function ensureLibs() {
   if (!routes) {
     routes = await import(chrome.runtime.getURL("lib/routes.js"));
   }
-  return { store, routes };
+  if (!ui) {
+    ui = await import(chrome.runtime.getURL("lib/ui.js"));
+  }
+  if (!theme) {
+    theme = await import(chrome.runtime.getURL("lib/theme.js"));
+  }
+  return { store, routes, ui, theme };
 }
 
 const SPEED_ID = "fg-speed-btn";
@@ -32,30 +41,6 @@ let busy = false;
 /** 当前最优节点对应的代理地址 */
 function nodeUrl(target) {
   return store.buildProxyUrl(store.bestNode(settings), target);
-}
-
-/**
- * @param {string} text
- */
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const area = document.createElement("textarea");
-      area.value = text;
-      area.style.position = "fixed";
-      area.style.opacity = "0";
-      document.body.appendChild(area);
-      area.select();
-      const ok = document.execCommand("copy");
-      area.remove();
-      return ok;
-    } catch {
-      return false;
-    }
-  }
 }
 
 /** 页面内轻提示 */
@@ -90,17 +75,17 @@ async function downloadRouted(sourceUrl, fileName) {
 
   let url = sourceUrl;
   let label = "直连";
+  const proxyNode = decision.mode === "proxy" ? store.bestNode(settings) : "";
   if (decision.mode === "jsdelivr") {
     url = routes.toJsDelivr(sourceUrl) ?? sourceUrl;
     label = "jsDelivr CDN";
-  } else if (decision.mode === "proxy") {
-    const node = store.bestNode(settings);
-    url = store.buildProxyUrl(node, sourceUrl);
-    label = node;
+  } else if (proxyNode) {
+    url = store.buildProxyUrl(proxyNode, sourceUrl);
+    label = proxyNode;
   }
 
   const start = performance.now();
-  const trackUsage = decision.mode === "proxy";
+  const trackUsage = Boolean(proxyNode);
 
   try {
     const res = await fetch(url, { cache: "no-store" });
@@ -117,12 +102,12 @@ async function downloadRouted(sourceUrl, fileName) {
     }, 2000);
 
     if (trackUsage) {
-      await store.recordUsage(store.bestNode(settings), true, performance.now() - start);
+      await store.recordUsage(proxyNode, true, performance.now() - start);
     }
     flash(`已通过 ${label} 下载 · ${decision.reason}`);
   } catch {
     if (trackUsage) {
-      await store.recordUsage(store.bestNode(settings), false, performance.now() - start);
+      await store.recordUsage(proxyNode, false, performance.now() - start);
     }
     // jsDelivr 覆盖不到的情况（私有仓库、超过 20MB、缓存未生成）降级到加速节点
     if (decision.mode === "jsdelivr") {
@@ -183,7 +168,7 @@ function renderSpeedButton() {
 
   // 通道列表用于 clone，只取「可加速仓库」的节点（下载专用节点不能 clone）
   const list = store.channels(settings, settings.channelCount, "full");
-  const best = store.bestNode(settings);
+  const best = store.preferredNode(settings);
   const total = store.activeNodes(settings).length;
   const fullCount = list.filter((n) => store.kindOf(settings, n) === "full").length;
 
@@ -231,7 +216,7 @@ function renderSpeedButton() {
       </div>
       <a
         class="fg-panel-feedback"
-        href="https://github.com/Master-five-elements/Fast-GitHub/issues"
+        href="https://github.com/Fanxingkeming/Fast-GitHub/issues"
         target="_blank"
         rel="noopener"
         >💬 反馈问题 / 节点失效</a
@@ -244,7 +229,12 @@ function renderSpeedButton() {
   trigger?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    const willOpen = !panel?.classList.contains("is-open");
     panel?.classList.toggle("is-open");
+    // 面板默认靠右向左展开；触发按钮贴近视口左缘时改为向右展开，避免溢出被裁切
+    if (willOpen && panel) {
+      panel.classList.toggle("is-align-left", panel.getBoundingClientRect().left < 8);
+    }
   });
   document.addEventListener("click", (event) => {
     if (!wrap.contains(/** @type {Node} */ (event.target))) {
@@ -256,7 +246,7 @@ function renderSpeedButton() {
     const target = /** @type {HTMLElement} */ (event.target);
     const copyBtn = target.closest("[data-copy]");
     if (copyBtn) {
-      const ok = await copyText(copyBtn.getAttribute("data-copy") ?? "");
+      const ok = await ui.copyText(copyBtn.getAttribute("data-copy") ?? "");
       flash(ok ? "已复制加速链接" : "复制失败，请手动复制");
       return;
     }
@@ -275,7 +265,7 @@ function renderSpeedButton() {
       if (target.closest("#fg-zip")) {
         window.location.href = zipUrl;
       } else {
-        const ok = await copyText(zipUrl);
+        const ok = await ui.copyText(zipUrl);
         flash(ok ? `已复制 ZIP 链接 · ${decision.reason}` : "复制失败");
       }
     }
@@ -348,6 +338,11 @@ async function main() {
   await ensureLibs();
   settings = await store.get();
   if (!settings?.enabled) return;
+  // 注入面板跟随浏览器 / 系统强调色与 GitHub 页面明暗，只写 --fgm-* 变量
+  if (!themeApplied) {
+    theme.applyBrowserTheme(settings, { injected: true });
+    themeApplied = true;
+  }
 
   const parts = window.location.pathname.split("/").filter(Boolean);
   if (parts.length < 2) return;
@@ -376,7 +371,15 @@ async function main() {
 }
 
 let timer = 0;
-const observer = new MutationObserver(() => {
+/** 主题色探针会短暂插入 / 移除一个 span，不应触发全量重注入 */
+function isThemeProbe(node) {
+  return node?.nodeType === 1 && node.hasAttribute?.("data-fg-theme-probe");
+}
+const observer = new MutationObserver((records) => {
+  const meaningful = records.some((record) =>
+    [...record.addedNodes, ...record.removedNodes].some((node) => !isThemeProbe(node)),
+  );
+  if (!meaningful) return;
   clearTimeout(timer);
   timer = window.setTimeout(() => {
     main().catch((error) => console.debug("[FastGitHub]", error));
